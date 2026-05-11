@@ -39,7 +39,7 @@
 /system             erofs     system                                        flags=logical;first_stage_mount;display="System"
 /vendor             erofs     vendor                                        flags=logical;first_stage_mount;display="Vendor"
 /product            erofs     product                                       flags=logical;first_stage_mount;display="Product"
-/odm                erofs     odm                                           flags=logical;first_stage_mount;display="Odm"
+/odm                erofs     /odm                                           flags=logical;first_stage_mount;display="Odm"
 /system_ext         erofs     system_ext                                    flags=logical;first_stage_mount;display="System_ext"
 
 /boot               emmc      /dev/block/bootdevice/by-name/boot            flags=display="Boot";backup=1;flashimg=1
