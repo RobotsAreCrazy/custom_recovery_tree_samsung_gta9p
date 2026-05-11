@@ -5,18 +5,22 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Inherit from those products. Most specific first.)
+# Inherit from those products. Most specific first.
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
-
-# Enable project quotas and casefolding for emulated storage without sdcardfs
-#$(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
 
 # Inherit some common twrp stuff.
 $(call inherit-product, vendor/twrp/config/common.mk)
 
+# --- ORANGEFOX SPECIFIC VARIABLES ---
+PRODUCT_RELEASE_NAME := gta9p
+DEVICE_PATH := device/samsung/gta9p
+
+# This line links your OrangeFox settings (theme, splash, etc.)
+$(call inherit-product-if-exists, $(DEVICE_PATH)/fox_gta9p.mk)
+
 # Inherit from gta9p device
-$(call inherit-product, device/samsung/gta9p/device.mk)
+$(call inherit-product, $(DEVICE_PATH)/device.mk)
 
 PRODUCT_DEVICE := gta9p
 PRODUCT_NAME := twrp_gta9p
@@ -26,7 +30,8 @@ PRODUCT_MANUFACTURER := samsung
 
 PRODUCT_GMS_CLIENTID_BASE := android-samsung
 
+# Updated fingerprint to reflect the modern software base
 PRODUCT_BUILD_PROP_OVERRIDES += \
-    PRIVATE_BUILD_DESC="gta9pxxx-user 11 RP1A.200720.012 X216BXXU1BXA7 release-keys"
+    PRIVATE_BUILD_DESC="gta9p-user 13 TP1A.220624.014 X216BXXU1BXA7 release-keys"
 
-BUILD_FINGERPRINT := samsung/gta9pxxx/gta9p:11/RP1A.200720.012/X216BXXU1BXA7:user/release-keys
+BUILD_FINGERPRINT := samsung/gta9p/gta9p:13/TP1A.220624.014/X216BXXU1BXA7:user/release-keys
