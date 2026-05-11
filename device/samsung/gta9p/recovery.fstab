@@ -48,7 +48,7 @@
 /data               f2fs      /dev/block/bootdevice/by-name/userdata                                flags=display="Data"
 /cache              ext4      /dev/block/bootdevice/by-name/cache                                   flags=display="Cache"
 
-# Samsung Specifics
+# Samsung & Modem Partitions (Critical for X216B)
 /efs                ext4      /dev/block/bootdevice/by-name/efs                                     flags=display="EFS";backup=1
 /sec_efs            ext4      /dev/block/bootdevice/by-name/sec_efs                                 flags=display="Sec EFS";backup=1
 /modem              emmc      /dev/block/bootdevice/by-name/radio                                   flags=display="Modem";backup=1
