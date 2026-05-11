@@ -4,13 +4,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Build OrangeFox
-        uses: carlodandan/OrangeFox-Action-Builder@master
+        uses: carlodandan/OrangeFox-Action-Builder@main
         with:
           MANIFEST_BRANCH: '12.1'
           DEVICE_TREE: 'https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p'
