@@ -1,0 +1,20 @@
+name: OrangeFox Build #18
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build OrangeFox
+        uses: carlodandan/OrangeFox-Action-Builder@master
+        with:
+          MANIFEST_BRANCH: '12.1'
+          DEVICE_TREE: 'https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p'
+          DEVICE_TREE_BRANCH: 'twrp-12.1'
+          DEVICE_PATH: 'device/samsung/gta9p'
+          DEVICE_NAME: 'gta9p'
+          BUILD_TARGET: 'recovery'
