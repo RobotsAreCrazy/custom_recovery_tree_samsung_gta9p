@@ -14,7 +14,7 @@ $(call inherit-product, vendor/twrp/config/common.mk)
 
 # --- ORANGEFOX SPECIFIC VARIABLES ---
 PRODUCT_RELEASE_NAME := gta9p
-DEVICE_PATH := device/samsung/gta9p
+DEVICE_PATH := device/samsung/gta9p/
 
 # This line links your OrangeFox settings (theme, splash, etc.)
 $(call inherit-product-if-exists, $(DEVICE_PATH)/fox_gta9p.mk)
