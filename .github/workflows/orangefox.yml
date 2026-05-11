@@ -1,20 +1,46 @@
-name: OrangeFox Build #18
+name: OrangeFox Build
+
 on:
   workflow_dispatch:
+    inputs:
+      MANIFEST_BRANCH:
+        description: 'OrangeFox Manifest Branch'
+        required: true
+        default: '12.1'
+      DEVICE_TREE:
+        description: 'Device Tree Link'
+        required: true
+        default: 'https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p'
+      DEVICE_TREE_BRANCH:
+        description: 'Device Tree Branch'
+        required: true
+        default: 'twrp-12.1'
+      DEVICE_PATH:
+        description: 'Device Path (e.g. device/samsung/gta9p)'
+        required: true
+        default: 'device/samsung/gta9p'
+      DEVICE_NAME:
+        description: 'Device Codename'
+        required: true
+        default: 'gta9p'
+      BUILD_TARGET:
+        description: 'Build Target (recovery, boot, vendorboot)'
+        required: true
+        default: 'recovery'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Jumps the queue!
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build OrangeFox
-        uses: carlodandan/OrangeFox-Action-Builder@main
+      - name: Recovery Build
+        uses: oppo-mediatek-devs/Action-Recovery-Builder@main
         with:
-          MANIFEST_BRANCH: '12.1'
-          DEVICE_TREE: 'https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p'
-          DEVICE_TREE_BRANCH: 'twrp-12.1'
-          DEVICE_PATH: 'device/samsung/gta9p'
-          DEVICE_NAME: 'gta9p'
-          BUILD_TARGET: 'recovery'
+          MANIFEST_BRANCH: ${{ github.event.inputs.MANIFEST_BRANCH }}
+          DEVICE_TREE: ${{ github.event.inputs.DEVICE_TREE }}
+          DEVICE_TREE_BRANCH: ${{ github.event.inputs.DEVICE_TREE_BRANCH }}
+          DEVICE_PATH: ${{ github.event.inputs.DEVICE_PATH }}
+          DEVICE_NAME: ${{ github.event.inputs.DEVICE_NAME }}
+          BUILD_TARGET: ${{ github.event.inputs.BUILD_TARGET }}
