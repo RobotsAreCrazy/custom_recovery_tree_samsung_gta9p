@@ -4,7 +4,7 @@
 # Modified for OrangeFox SM-X216B 5G
 #
 
-DEVICE_PATH := device/samsung/gta9p/
+DEVICE_PATH := device/samsung/gta9p
 
 # For building with minimal manifest
 ALLOW_MISSING_DEPENDENCIES := true
