@@ -36,11 +36,11 @@
 
 
 # mount point       fstype    device                                                                flags
-/system             erofs     system                                                                flags=display="System";backup=1;logical
-/vendor             erofs     vendor                                                                flags=display="Vendor";backup=1;logical
-/product            erofs     product                                                               flags=display="Product";backup=1;logical
-/odm                erofs     odm                                                                   flags=display="Odm";backup=1;logical
-/system_ext         erofs     system_ext                                                            flags=display="System_ext";backup=1;logical
+/system             erofs     system                                                                flags=display="System";backup=1;logical;first_stage_mount
+/vendor             erofs     vendor                                                                flags=display="Vendor";backup=1;logical;first_stage_mount
+/product            erofs     product                                                               flags=display="Product";backup=1;logical;first_stage_mount
+/odm                erofs     odm                                                                   flags=display="Odm";backup=1;logical;first_stage_mount
+/system_ext         erofs     system_ext                                                            flags=display="System_ext";backup=1;logical;first_stage_mount
 
 /boot               emmc      /dev/block/bootdevice/by-name/boot                                    flags=display="Boot";backup=1;flashimg=1
 /recovery           emmc      /dev/block/bootdevice/by-name/recovery                                flags=display="Recovery";backup=1;flashimg=1
@@ -48,13 +48,13 @@
 /data               f2fs      /dev/block/bootdevice/by-name/userdata                                flags=display="Data"
 /cache              ext4      /dev/block/bootdevice/by-name/cache                                   flags=display="Cache"
 
-# Samsung & Modem Partitions (Critical for X216B 5G)
+# Samsung Specifics
 /efs                ext4      /dev/block/bootdevice/by-name/efs                                     flags=display="EFS";backup=1
 /sec_efs            ext4      /dev/block/bootdevice/by-name/sec_efs                                 flags=display="Sec EFS";backup=1
-/modem              emmc      /dev/block/bootdevice/by-name/apnhlos                                 flags=display="Modem";backup=1
-/mdm                emmc      /dev/block/bootdevice/by-name/modem                                   flags=display="Radio";backup=1
+/modem              emmc      /dev/block/bootdevice/by-name/radio                                   flags=display="Modem";backup=1
 /misc               emmc      /dev/block/bootdevice/by-name/misc                                    flags=display="Misc"
+/dtbo               emmc      /dev/block/bootdevice/by-name/dtbo                                    flags=display="DTBO";backup=1;flashimg=1
 
 # Removable storage
 /external_sd        vfat      /dev/block/mmcblk0p1    /dev/block/mmcblk0                            flags=display="MicroSD";storage;wipeui;removable
-/usb_otg            vfat      /dev/block/sdg1         /dev/block/sdg                                flags=display="USB-OTG";storage;wipeui;removable
+/usb_otg            vfat      /dev/block/sdd1         /dev/block/sdd                                flags=display="USB-OTG";storage;wipeui;removable
