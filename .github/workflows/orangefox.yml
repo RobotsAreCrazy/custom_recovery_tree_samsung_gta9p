@@ -5,17 +5,16 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Recovery Build
-        uses: NSR-XINE/OrangeFox-Action-Builder@main
+      - name: Build OrangeFox
+        uses: OrangeFoxRecovery/OrangeFox-Builder@master
         with:
-          MANIFEST_BRANCH: '12.1'
-          DEVICE_TREE: 'https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p'
-          DEVICE_TREE_BRANCH: 'twrp-12.1'
-          DEVICE_PATH: 'device/samsung/gta9p'
-          DEVICE_NAME: 'gta9p'
-          BUILD_TARGET: 'recovery'
+          args: >
+            --branch 12.1
+            --device gta9p
+            --path device/samsung/gta9p
+            --owner RobotsAreCrazy
