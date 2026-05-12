@@ -10,31 +10,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Build Environment
+      - name: Setup Environment
         run: |
           sudo apt update
           sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync curl bc zip unzip
+          # Setup git so the sync script doesn't complain
           git config --global user.name "RobotsAreCrazy"
           git config --global user.email "robotsarecrazy@github.com"
 
-      - name: Download OrangeFox Source (Direct)
+      - name: Sync OrangeFox Source
         run: |
-          mkdir -p ~/fox_12.1 && cd ~/fox_12.1
-          # Downloading the core build system as a ZIP to avoid 'git' login errors
-          aria2c -s16 -x16 https://github.com/OrangeFoxRecovery/build/archive/refs/heads/fox_12.1.zip
-          unzip fox_12.1.zip && mv build-fox_12.1 build && rm fox_12.1.zip
+          mkdir -p ~/fox_12.1
+          # Get the official sync script
+          git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
+          cd ~/orangefox_sync
+          # This script handles all the 'repo' and GitLab authentication internally
+          ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
           
-          # Clone your device tree (this one usually works because it's YOUR repo)
-          mkdir -p device/samsung/gta9p
+          # Now add your specific device tree
+          cd ~/fox_12.1
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
 
       - name: Build
         run: |
           cd ~/fox_12.1
-          # Basic environment setup
           source build/envsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_USE_TWRP_DT=1
-          export LC_ALL="C"
           lunch twrp_gta9p-eng
           mka recoveryimage
