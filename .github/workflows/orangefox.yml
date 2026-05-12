@@ -1,55 +1,71 @@
-name: OrangeFox Build (Integration Fix)
+name: OrangeFox Build - Zero-File Strategy
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Environment
+      - name: Cleanup & Maximize Space
         run: |
-          sudo apt update
-          sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync curl bc zip unzip python-is-python3 dos2unix
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+rx ~/bin/repo
-          sudo ln -sf ~/bin/repo /usr/bin/repo
-          git config --global user.name "RobotsAreCrazy"
-          git config --global user.email "robotsarecrazy@github.com"
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+      - name: Set up Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 python2 gcc clang
 
       - name: Sync OrangeFox
         run: |
-          mkdir -p /home/runner/fox_12.1
-          git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
-          cd ~/orangefox_sync
-          ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1
+          mkdir -p ~/fox_12.1
+          cd ~/fox_12.1
+          git clone https://gitlab.com/OrangeFox/sync.git -b 12.1 ~/orangefox_sync
+          python3 ~/orangefox_sync/orangefox_sync.py --branch 12.1 --path ~/fox_12.1
 
-      - name: Force-Inject Device Tree
+      - name: Force-Inject Device Tree (No-Script Mode)
         run: |
-          # 1. Clone your tree to a temporary spot
+          # 1. Clone the tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 ~/temp_tree
           
-          # 2. Force create the directory and move files in
-          mkdir -p /home/runner/fox_12.1/device/samsung/gta9p
-          cp -rf ~/temp_tree/* /home/runner/fox_12.1/device/samsung/gta9p/
+          # 2. Setup target directory
+          mkdir -p ~/fox_12.1/device/samsung/gta9p
           
-          # 3. Fix the specific script that keeps crashing
-          cd /home/runner/fox_12.1/device/samsung/gta9p
-          echo "export ALLOW_MISSING_DEPENDENCIES=true" > vendorsetup.sh
-          echo "export LC_ALL=C" >> vendorsetup.sh
-          echo "true" >> vendorsetup.sh
-          chmod 755 vendorsetup.sh
+          # 3. Copy files but DELETE the problematic script
+          cp -rf ~/temp_tree/* ~/fox_12.1/device/samsung/gta9p/
+          rm -f ~/fox_12.1/device/samsung/gta9p/vendorsetup.sh
+          
+          echo "Device tree injected. vendorsetup.sh removed to prevent Exit 1."
 
-      - name: Build
+      - name: Build OrangeFox
         run: |
-          cd /home/runner/fox_12.1
-          # We manually source envsetup and lunch to bypass the automatic inclusion crash
-          set -e
+          cd ~/fox_12.1
+          # Manually Inject the variables the script was supposed to handle
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export FOX_BUILD_DEVICE=gta9p
+          export LC_ALL=C
+          export FOX_USE_TWRP_DT=1
+          export OF_MAINTAINER="RobotsAreCrazy"
+          
+          # Start the build process
           source build/envsetup.sh
           lunch twrp_gta9p-eng
-          export FOX_USE_TWRP_DT=1
           mka recoveryimage
+
+      - name: Upload Recovery Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeFox-A9P
+          path: |
+            /home/runner/fox_12.1/out/target/product/gta9p/OrangeFox*.zip
+            /home/runner/fox_12.1/out/target/product/gta9p/recovery.img
