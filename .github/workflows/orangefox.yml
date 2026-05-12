@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v20
+name: OrangeFox Build - Final v21
 
 on:
   workflow_dispatch:
@@ -40,6 +40,7 @@ jobs:
           chmod +x "$SYNC_SCRIPT"
           cd $(dirname "$SYNC_SCRIPT")
           /bin/bash ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1 || true
+          sleep 10 # Brief pause to let network stabilize
 
       - name: Inject Device Tree
         uses: actions/checkout@v4
