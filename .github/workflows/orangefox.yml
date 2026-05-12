@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v26
+name: OrangeFox Build - Final v27
 
 on:
   workflow_dispatch:
@@ -47,20 +47,21 @@ jobs:
 
       - name: Final Build
         run: |
-          # 1. Locate the actual device folder wherever it ended up
-          REAL_DEVICE_PATH=$(find $GITHUB_WORKSPACE/work -name "twrp_gta9p.mk" | head -n 1 | xargs dirname)
+          # 1. Find the REAL build root (where envsetup.sh is)
+          BUILD_ROOT=$(find $GITHUB_WORKSPACE -name "envsetup.sh" | head -n 1 | xargs dirname)
+          echo "Build root found at: $BUILD_ROOT"
+          cd "$BUILD_ROOT"
+          
+          # 2. Find the REAL device path
+          REAL_DEVICE_PATH=$(find $GITHUB_WORKSPACE -name "twrp_gta9p.mk" | head -n 1 | xargs dirname)
           echo "Device files found at: $REAL_DEVICE_PATH"
           
-          # 2. Fix the Manifests inside that folder
+          # 3. Setup the build links inside the REAL device path
           rm -f $REAL_DEVICE_PATH/vendorsetup.sh
           echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > $REAL_DEVICE_PATH/AndroidProducts.mk
           echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> $REAL_DEVICE_PATH/AndroidProducts.mk
           
-          # 3. Enter the build root
-          BUILD_ROOT=$(find $GITHUB_WORKSPACE/work -name "envsetup.sh" | head -n 1 | xargs dirname)
-          cd "$BUILD_ROOT"
-          
-          # 4. Final Exports
+          # 4. Exports
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
@@ -68,7 +69,7 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           
-          # 5. Execute Build
+          # 5. Build
           bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
