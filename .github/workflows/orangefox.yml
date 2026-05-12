@@ -1,4 +1,4 @@
-name: OrangeFox Build - Zero-File Strategy
+name: OrangeFox Build - Zero-File Strategy 2026
 
 on:
   workflow_dispatch:
@@ -20,22 +20,32 @@ jobs:
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          # Extra space for 22.04
+          sudo docker image prune -a -f
+          sudo apt-get clean
 
       - name: Set up Build Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 python2 gcc clang
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository universe -y
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 python2 gcc clang libssl-dev
+          # Link python2 to python for the legacy sync tools
+          sudo ln -sf /usr/bin/python2 /usr/bin/python
 
       - name: Sync OrangeFox
         run: |
           mkdir -p ~/fox_12.1
           cd ~/fox_12.1
-          git clone https://gitlab.com/OrangeFox/sync.git -b 12.1 ~/orangefox_sync
+          # Cloning the sync tool itself
+          git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
+          # Use 12.1 branch (The script handles the fox_ prefix internally)
           python3 ~/orangefox_sync/orangefox_sync.py --branch 12.1 --path ~/fox_12.1
 
       - name: Force-Inject Device Tree (No-Script Mode)
         run: |
-          # 1. Clone the tree
+          # 1. Clone the tree to a temp spot
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 ~/temp_tree
           
           # 2. Setup target directory
@@ -45,19 +55,19 @@ jobs:
           cp -rf ~/temp_tree/* ~/fox_12.1/device/samsung/gta9p/
           rm -f ~/fox_12.1/device/samsung/gta9p/vendorsetup.sh
           
-          echo "Device tree injected. vendorsetup.sh removed to prevent Exit 1."
+          echo "Device tree injected. vendorsetup.sh deleted to bypass Exit 1."
 
       - name: Build OrangeFox
         run: |
           cd ~/fox_12.1
-          # Manually Inject the variables the script was supposed to handle
+          # Manually Inject the variables to replace the deleted script
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           
-          # Start the build process
+          # Standard OrangeFox build commands
           source build/envsetup.sh
           lunch twrp_gta9p-eng
           mka recoveryimage
@@ -65,7 +75,7 @@ jobs:
       - name: Upload Recovery Image
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-A9P
+          name: OrangeFox-A9P-Final
           path: |
             /home/runner/fox_12.1/out/target/product/gta9p/OrangeFox*.zip
             /home/runner/fox_12.1/out/target/product/gta9p/recovery.img
