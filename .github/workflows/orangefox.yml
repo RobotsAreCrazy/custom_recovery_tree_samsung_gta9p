@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v14
+name: OrangeFox Build - Final v15
 
 on:
   workflow_dispatch:
@@ -39,18 +39,17 @@ jobs:
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
           chmod +x "$SYNC_SCRIPT"
           cd $(dirname "$SYNC_SCRIPT")
-          # Ignore the stop code
           /bin/bash ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1 || true
 
       - name: Force-Inject & Build
         run: |
           cd /home/runner/fox_12.1
           
-          # 1. FORCE CLEAN THE DEVICE PATH (Fixes Image 223)
+          # 1. DELETE THE FOLDER ENTIRELY (Don't use mkdir)
+          # This allows git clone to create the directory fresh
           rm -rf device/samsung/gta9p
-          mkdir -p device/samsung/gta9p
           
-          # 2. CLONE DIRECTLY INTO THE PATH
+          # 2. CLONE INTO THE PATH (This will now succeed)
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
           
           # 3. OVERWRITE BUGGY SCRIPTS
@@ -66,7 +65,7 @@ jobs:
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           
-          # 5. EXECUTE BUILD IN PERSISTENT SHELL
+          # 5. EXECUTE BUILD
           /bin/bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
