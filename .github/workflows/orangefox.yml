@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v24
+name: OrangeFox Build - Final v25
 
 on:
   workflow_dispatch:
@@ -47,18 +47,24 @@ jobs:
 
       - name: Final Build
         run: |
-          # Dynamically find the build root
+          # 1. Find the root where envsetup.sh exists
           BUILD_ROOT=$(find $GITHUB_WORKSPACE/work -name "envsetup.sh" | head -n 1 | xargs dirname)
           cd "$BUILD_ROOT"
           
+          # 2. Fix Nesting: If files are inside a subfolder, move them up
           DEVICE_PATH="device/samsung/gta9p"
+          if [ -d "$DEVICE_PATH/custom_recovery_tree_samsung_gta9p" ]; then
+            echo "Fixing nested folder structure..."
+            mv $DEVICE_PATH/custom_recovery_tree_samsung_gta9p/* $DEVICE_PATH/
+            rm -rf $DEVICE_PATH/custom_recovery_tree_samsung_gta9p
+          fi
           
-          # Setup Manifests
+          # 3. Create the necessary build links
           rm -f $DEVICE_PATH/vendorsetup.sh
           echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > $DEVICE_PATH/AndroidProducts.mk
           echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> $DEVICE_PATH/AndroidProducts.mk
           
-          # Exports
+          # 4. Exports
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
@@ -66,7 +72,7 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           
-          # Build
+          # 5. The Build Command
           bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
