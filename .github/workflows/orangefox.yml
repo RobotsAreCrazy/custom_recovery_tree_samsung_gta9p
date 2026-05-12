@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final Zero-File Strategy
+name: OrangeFox Build - Final Zero-File Strategy v3
 
 on:
   workflow_dispatch:
@@ -30,48 +30,47 @@ jobs:
           sudo add-apt-repository universe -y
           sudo apt-get update
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 python2 gcc clang libssl-dev
-          # Create the legacy link for Python 2.7
           sudo ln -sf /usr/bin/python2 /usr/bin/python
 
       - name: Sync OrangeFox
         run: |
-          mkdir -p ~/fox_12.1
-          cd ~/fox_12.1
-          # Clone the sync tools
+          # 1. Create the base build directory and the patches folder
+          mkdir -p /home/runner/fox_12.1/patches
+          
+          # 2. Clone the sync tool
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
           
-          # Find the actual sync script (handles if it's in ~/orangefox_sync/sync/orangefox_sync.sh)
+          # 3. CRITICAL: Copy the patches into the target directory before syncing
+          # This fixes the "I cannot find the patch file" error from Image 212
+          cp -r ~/orangefox_sync/patches/* /home/runner/fox_12.1/patches/
+          
+          # 4. Find the actual script (it's usually in ~/orangefox_sync/sync/orangefox_sync.sh)
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
-          echo "Found sync script at: $SYNC_SCRIPT"
           chmod +x "$SYNC_SCRIPT"
           
-          # Run the sync (Note: 12.1 branch is used for the A9+)
+          # 5. Run the sync using absolute paths
           /bin/bash "$SYNC_SCRIPT" --branch 12.1 --path /home/runner/fox_12.1
 
       - name: Force-Inject Device Tree (No-Script Mode)
         run: |
-          # 1. Clone your tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 ~/temp_tree
-          
-          # 2. Prep target
           mkdir -p /home/runner/fox_12.1/device/samsung/gta9p
-          
-          # 3. Copy and PURGE the broken script
           cp -rf ~/temp_tree/* /home/runner/fox_12.1/device/samsung/gta9p/
+          
+          # DELETE the problematic script so 'lunch' doesn't execute it
           rm -f /home/runner/fox_12.1/device/samsung/gta9p/vendorsetup.sh
           echo "Tree injected. Script deleted to bypass Exit 1."
 
       - name: Build OrangeFox
         run: |
           cd /home/runner/fox_12.1
-          # Manual Variable Injection (since we killed vendorsetup.sh)
+          # Manually Inject the variables the deleted script was handling
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           
-          # The Build sequence
           source build/envsetup.sh
           lunch twrp_gta9p-eng
           mka recoveryimage
