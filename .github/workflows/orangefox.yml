@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v32
+name: OrangeFox Build - Final v33
 
 on:
   workflow_dispatch:
@@ -31,24 +31,23 @@ jobs:
 
       - name: Sync OrangeFox
         run: |
-          # Use a dedicated folder in the runner's home to avoid GitHub Workspace restrictions
-          mkdir -p ~/fox
+          mkdir -p /home/runner/fox
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
           chmod +x "$SYNC_SCRIPT"
           cd $(dirname "$SYNC_SCRIPT")
-          # Syncing to a clean, absolute path
-          /bin/bash ./orangefox_sync.sh --branch 12.1 --path ~/fox || true
+          /bin/bash ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox || true
 
       - name: Inject Device Tree
         run: |
-          # Manual injection to ensure it lands in the right place
-          mkdir -p ~/fox/device/samsung/gta9p
-          git clone -b twrp-12.1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git ~/fox/device/samsung/gta9p
+          mkdir -p /home/runner/fox/device/samsung/gta9p
+          git clone -b twrp-12.1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git /home/runner/fox/device/samsung/gta9p
 
       - name: Final Build
         run: |
-          cd ~/fox
+          # Use absolute path to ensure the runner finds the folder
+          cd /home/runner/fox
+          
           DEVICE_PATH="device/samsung/gta9p"
           
           # Setup Manifests
@@ -65,7 +64,8 @@ jobs:
           export SKIP_API_CHECK=true
           
           # Build
-          bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
+          # We source directly from the absolute path to be bulletproof
+          /bin/bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
         if: always()
@@ -73,5 +73,5 @@ jobs:
         with:
           name: OrangeFox-A9P-Final
           path: |
-            ~/fox/out/target/product/gta9p/OrangeFox*.zip
-            ~/fox/out/target/product/gta9p/recovery.img
+            /home/runner/fox/out/target/product/gta9p/OrangeFox*.zip
+            /home/runner/fox/out/target/product/gta9p/recovery.img
