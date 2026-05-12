@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v15
+name: OrangeFox Build - Final v16
 
 on:
   workflow_dispatch:
@@ -45,27 +45,26 @@ jobs:
         run: |
           cd /home/runner/fox_12.1
           
-          # 1. DELETE THE FOLDER ENTIRELY (Don't use mkdir)
-          # This allows git clone to create the directory fresh
+          # 1. Clean the path
           rm -rf device/samsung/gta9p
           
-          # 2. CLONE INTO THE PATH (This will now succeed)
+          # 2. Clone the tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
           
-          # 3. OVERWRITE BUGGY SCRIPTS
+          # 3. Setup AndroidProducts (Using -f to ignore if files are missing)
           DEVICE_PATH="device/samsung/gta9p"
           rm -f $DEVICE_PATH/vendorsetup.sh
           echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > $DEVICE_PATH/AndroidProducts.mk
           echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> $DEVICE_PATH/AndroidProducts.mk
           
-          # 4. EXPORT VARIABLES
+          # 4. Global Variables
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           
-          # 5. EXECUTE BUILD
+          # 5. The Moment of Truth
           /bin/bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
