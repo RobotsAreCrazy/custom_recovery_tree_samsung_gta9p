@@ -28,18 +28,18 @@ jobs:
           cd ~/orangefox_sync
           ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1
           
-          # Clone device tree into the correct absolute path
+          # CRITICAL: Manually pull the missing vendor and core dependencies
           cd /home/runner/fox_12.1
+          git clone https://github.com/OrangeFoxRecovery/vendor_recovery.git -b fox_12.1 vendor/recovery
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
 
       - name: Build
         run: |
-          # Use absolute paths to avoid 'directory not found' errors
           cd /home/runner/fox_12.1
           set -e
           source build/envsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_USE_TWRP_DT=1
-          export LC_ALL="C"
+          # This tells the builder exactly where to look for the tablet's config
           lunch twrp_gta9p-eng
           mka recoveryimage
