@@ -13,28 +13,28 @@ jobs:
       - name: Setup Build Environment
         run: |
           sudo apt update
-          sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync curl bc
+          sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync curl bc zip unzip
           git config --global user.name "RobotsAreCrazy"
           git config --global user.email "robotsarecrazy@github.com"
 
-      - name: Manual Clone Sync
+      - name: Download OrangeFox Source (Direct)
         run: |
-          mkdir ~/fox_12.1 && cd ~/fox_12.1
-          # Manually cloning the minimal build system instead of using 'repo'
-          git clone https://github.com/OrangeFoxRecovery/build.git -b fox_12.1 build
-          git clone https://github.com/OrangeFoxRecovery/vendor_magisk.git -b master vendor/magisk
+          mkdir -p ~/fox_12.1 && cd ~/fox_12.1
+          # Downloading the core build system as a ZIP to avoid 'git' login errors
+          aria2c -s16 -x16 https://github.com/OrangeFoxRecovery/build/archive/refs/heads/fox_12.1.zip
+          unzip fox_12.1.zip && mv build-fox_12.1 build && rm fox_12.1.zip
           
-          # Clone your device tree
+          # Clone your device tree (this one usually works because it's YOUR repo)
+          mkdir -p device/samsung/gta9p
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
-          
-          # Note: A full build usually needs more repos, but this starts the process 
-          # and lets us see if the environment is finally stable.
 
       - name: Build
         run: |
           cd ~/fox_12.1
+          # Basic environment setup
           source build/envsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_USE_TWRP_DT=1
+          export LC_ALL="C"
           lunch twrp_gta9p-eng
           mka recoveryimage
