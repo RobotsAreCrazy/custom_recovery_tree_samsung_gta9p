@@ -13,23 +13,23 @@ jobs:
       - name: Install Build Tools
         run: |
           sudo apt update
-          sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync
-          # Install the 'repo' tool manually
+          sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync curl
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+rx ~/bin/repo
           sudo ln -sf ~/bin/repo /usr/bin/repo
-          # Setup git identity
           git config --global user.name "RobotsAreCrazy"
           git config --global user.email "robotsarecrazy@github.com"
+          # Force Git to use public access for GitLab
+          git config --global url."https://gitlab.com/".insteadOf "git@gitlab.com:"
 
       - name: Manual Sync
         run: |
           mkdir ~/fox_12.1 && cd ~/fox_12.1
-          repo init -u https://gitlab.com/OrangeFox/manifest.git -b fox_12.1 --depth=1
+          # Using the direct HTTPS public URL with no-tags to keep it light
+          repo init -u https://gitlab.com/OrangeFox/manifest.git -b fox_12.1 --depth=1 --git-lfs
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
           
-          # Clone your device tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
 
       - name: Build
