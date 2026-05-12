@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v36
+name: OrangeFox Build - Final v37
 
 on:
   workflow_dispatch:
@@ -40,18 +40,21 @@ jobs:
 
       - name: Inject Tree & Start Build
         run: |
-          # 1. Clean and Inject
-          rm -rf /home/runner/fox/device/samsung/gta9p
-          mkdir -p /home/runner/fox/device/samsung/gta9p
-          git clone -b twrp-12.1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git /home/runner/fox/device/samsung/gta9p
+          # 1. Clone to a neutral temp location
+          rm -rf /home/runner/dt_temp
+          git clone -b twrp-12.1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git /home/runner/dt_temp
           
-          # 2. Configure
+          # 2. Force move to the correct build path
+          mkdir -p /home/runner/fox/device/samsung/gta9p
+          cp -r /home/runner/dt_temp/* /home/runner/fox/device/samsung/gta9p/
+          
+          # 3. Configure
           cd /home/runner/fox
           rm -f device/samsung/gta9p/vendorsetup.sh
           echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > device/samsung/gta9p/AndroidProducts.mk
           echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> device/samsung/gta9p/AndroidProducts.mk
           
-          # 3. Build
+          # 4. Build
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
