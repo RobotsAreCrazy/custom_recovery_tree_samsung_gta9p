@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final Zero-File Strategy v3
+name: OrangeFox Build - Final Zero-File Strategy v4
 
 on:
   workflow_dispatch:
@@ -34,22 +34,21 @@ jobs:
 
       - name: Sync OrangeFox
         run: |
-          # 1. Create the base build directory and the patches folder
-          mkdir -p /home/runner/fox_12.1/patches
+          # 1. Setup the target workspace
+          mkdir -p /home/runner/fox_12.1
           
-          # 2. Clone the sync tool
+          # 2. Clone the sync tool repo
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
           
-          # 3. CRITICAL: Copy the patches into the target directory before syncing
-          # This fixes the "I cannot find the patch file" error from Image 212
-          cp -r ~/orangefox_sync/patches/* /home/runner/fox_12.1/patches/
-          
-          # 4. Find the actual script (it's usually in ~/orangefox_sync/sync/orangefox_sync.sh)
+          # 3. Locate the script and its folder (crucial for patches)
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
+          SYNC_DIR=$(dirname "$SYNC_SCRIPT")
           chmod +x "$SYNC_SCRIPT"
           
-          # 5. Run the sync using absolute paths
-          /bin/bash "$SYNC_SCRIPT" --branch 12.1 --path /home/runner/fox_12.1
+          # 4. CD into the sync tool directory so the script sees the 'patches' folder
+          # But tell it to download the 45GB source into our build path
+          cd "$SYNC_DIR"
+          /bin/bash ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1
 
       - name: Force-Inject Device Tree (No-Script Mode)
         run: |
@@ -57,14 +56,14 @@ jobs:
           mkdir -p /home/runner/fox_12.1/device/samsung/gta9p
           cp -rf ~/temp_tree/* /home/runner/fox_12.1/device/samsung/gta9p/
           
-          # DELETE the problematic script so 'lunch' doesn't execute it
+          # DELETE the problematic script to prevent 'Exit 1' during lunch
           rm -f /home/runner/fox_12.1/device/samsung/gta9p/vendorsetup.sh
           echo "Tree injected. Script deleted to bypass Exit 1."
 
       - name: Build OrangeFox
         run: |
           cd /home/runner/fox_12.1
-          # Manually Inject the variables the deleted script was handling
+          # Manual Variable Injection to replace vendorsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
