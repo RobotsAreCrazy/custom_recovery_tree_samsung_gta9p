@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v42
+name: OrangeFox Build - Final v43
 
 on:
   workflow_dispatch:
@@ -48,7 +48,7 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Build Script with Versioning Fix
+          # 2. Refined Build Script
           cd /home/runner/fox
           cat << 'EOF' > builder.sh
           #!/bin/bash
@@ -59,9 +59,10 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           
-          # Fix for obsolete FOX_VERSION in 1000025261.jpg
+          # Explicitly set the required versioning variable found in 1000025262.jpg
           export FOX_MAINTAINER_PATCH_VERSION="1"
           
+          # Force clean the lunch choices to ensure gta9p is selected
           source build/envsetup.sh
           lunch twrp_gta9p-eng
           mka recoveryimage -j$(nproc --all)
