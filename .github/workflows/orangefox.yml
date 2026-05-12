@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v22
+name: OrangeFox Build - Final v23
 
 on:
   workflow_dispatch:
@@ -20,7 +20,6 @@ jobs:
           sudo apt-get clean
 
       - name: Set up Build Environment
-          # Using standard apt-get for tools
         run: |
           sudo apt-get update
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 python2 gcc clang libssl-dev
@@ -32,12 +31,13 @@ jobs:
 
       - name: Sync OrangeFox
         run: |
-          # Use the GITHUB_WORKSPACE instead of /home/runner/
-          mkdir -p $GITHUB_WORKSPACE/fox_12.1
+          # Create the directory in the current working directory
+          mkdir -p fox_12.1
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
           chmod +x "$SYNC_SCRIPT"
           cd $(dirname "$SYNC_SCRIPT")
+          # Use absolute path for the sync script to be safe
           /bin/bash ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/fox_12.1 || true
 
       - name: Inject Device Tree
@@ -45,12 +45,12 @@ jobs:
         with:
           repository: RobotsAreCrazy/custom_recovery_tree_samsung_gta9p
           ref: twrp-12.1
-          # This path is now inside the workspace, which solves the error in Image 231
           path: fox_12.1/device/samsung/gta9p
 
       - name: Final Build
         run: |
-          cd $GITHUB_WORKSPACE/fox_12.1
+          # Use the exact path that worked in the previous step
+          cd fox_12.1
           DEVICE_PATH="device/samsung/gta9p"
           
           # 1. Setup Manifests
@@ -67,7 +67,8 @@ jobs:
           export SKIP_API_CHECK=true
           
           # 3. Build
-          /bin/bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
+          # Sourcing and lunching in one subshell
+          bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
         if: always()
@@ -75,5 +76,5 @@ jobs:
         with:
           name: OrangeFox-A9P-Final
           path: |
-            ${{ github.workspace }}/fox_12.1/out/target/product/gta9p/OrangeFox*.zip
-            ${{ github.workspace }}/fox_12.1/out/target/product/gta9p/recovery.img
+            fox_12.1/out/target/product/gta9p/OrangeFox*.zip
+            fox_12.1/out/target/product/gta9p/recovery.img
