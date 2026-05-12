@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v9
+name: OrangeFox Build - Final v10
 
 on:
   workflow_dispatch:
@@ -48,38 +48,28 @@ jobs:
           mkdir -p $DEVICE_PATH
           cp -rf ~/temp_tree/* $DEVICE_PATH/
           
-          # Remove the broken script and create the modern replacement
+          # Use twrp_ prefix for best compatibility with OFRP 12.1
           rm -f $DEVICE_PATH/vendorsetup.sh
-          echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_gta9p.mk' > $DEVICE_PATH/AndroidProducts.mk
-          echo 'COMMON_LUNCH_CHOICES := omni_gta9p-eng' >> $DEVICE_PATH/AndroidProducts.mk
+          echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > $DEVICE_PATH/AndroidProducts.mk
+          echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> $DEVICE_PATH/AndroidProducts.mk
           
-          # Force the OrangeFox device name
+          # Force OFRP variables into the build system
           echo "FOX_BUILD_DEVICE := gta9p" >> $DEVICE_PATH/BoardConfig.mk
+          echo "ALLOW_MISSING_DEPENDENCIES := true" >> $DEVICE_PATH/BoardConfig.mk
 
       - name: Build OrangeFox
         run: |
-          # Use /bin/bash -i to ensure we have a full shell environment
           cd /home/runner/fox_12.1
           
-          # Essential Variables
+          # Export variables for the current subshell
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           
-          # Debug: Show us what we have
-          echo "Checking for envsetup..."
-          ls -l build/envsetup.sh
-          
-          # Start the build process
-          source build/envsetup.sh
-          
-          # Try to lunch. If it fails, print the available lunch choices so we can fix it!
-          lunch omni_gta9p-eng || lunch twrp_gta9p-eng || (echo "Lunch failed. Available choices:" && lunch)
-          
-          # Final build command
-          mka recoveryimage -j$(nproc --all)
+          # Run everything in ONE line to prevent environment loss
+          /bin/bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
