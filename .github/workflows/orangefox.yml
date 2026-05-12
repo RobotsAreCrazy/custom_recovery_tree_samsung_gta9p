@@ -10,24 +10,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Environment
+      - name: Setup Environment & Repo Tool
         run: |
           sudo apt update
           sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync curl bc zip unzip
-          # Setup git so the sync script doesn't complain
+          # Install the 'repo' tool properly
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+rx ~/bin/repo
+          sudo ln -sf ~/bin/repo /usr/bin/repo
+          # Setup git identity
           git config --global user.name "RobotsAreCrazy"
           git config --global user.email "robotsarecrazy@github.com"
 
       - name: Sync OrangeFox Source
         run: |
           mkdir -p ~/fox_12.1
-          # Get the official sync script
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
           cd ~/orangefox_sync
-          # This script handles all the 'repo' and GitLab authentication internally
+          # Now that 'repo' is installed, this script will work
           ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
           
-          # Now add your specific device tree
+          # Add your device tree
           cd ~/fox_12.1
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
 
