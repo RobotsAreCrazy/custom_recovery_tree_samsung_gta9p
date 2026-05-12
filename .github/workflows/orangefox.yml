@@ -21,17 +21,14 @@ jobs:
           git config --global user.name "RobotsAreCrazy"
           git config --global user.email "robotsarecrazy@github.com"
 
-      - name: Manual Sync
+      - name: Sync from GitHub Mirror
         run: |
           mkdir ~/fox_12.1 && cd ~/fox_12.1
-          # We use the 'git' protocol mirror for the manifest to bypass the 2026 MFA gate
-          repo init -u https://gitlab.com/OrangeFox/manifest.git -b fox_12.1 --depth=1 --no-clone-bundle
-          
-          # Fix for the 'Authentication Required' - force repo to use persistent transport
-          git config --global http.postBuffer 524288000
-          
+          # Using a GitHub mirror for the manifest to bypass GitLab MFA
+          repo init -u https://github.com/OrangeFoxRecovery/manifest.git -b fox_12.1 --depth=1
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
           
+          # Clone your specific Samsung device tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
 
       - name: Build
