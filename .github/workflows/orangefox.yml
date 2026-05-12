@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final Zero-File Strategy v5
+name: OrangeFox Build - Final v6
 
 on:
   workflow_dispatch:
@@ -26,50 +26,44 @@ jobs:
           sudo add-apt-repository universe -y
           sudo apt-get update
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 python2 gcc clang libssl-dev
-          
-          # 1. Install the missing REPO tool (Fixes Image 214)
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
           sudo ln -sf ~/bin/repo /usr/bin/repo
-          
-          # 2. Link python2
           sudo ln -sf /usr/bin/python2 /usr/bin/python
 
       - name: Sync OrangeFox
         run: |
-          # Setup paths
-          mkdir -p /home/runner/fox_12.1/patches
-          
-          # Clone sync tool
+          mkdir -p /home/runner/fox_12.1
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
-          
-          # Brute Force Move Patches (Your idea - fixes pathing issues)
-          cp -r ~/orangefox_sync/patches/* /home/runner/fox_12.1/patches/
-          
-          # Identify script and context
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
           chmod +x "$SYNC_SCRIPT"
-          
-          # Run the sync from its local directory
           cd $(dirname "$SYNC_SCRIPT")
           /bin/bash ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1
 
-      - name: Force-Inject Device Tree (No-Script Mode)
+      - name: Force-Inject Device Tree
         run: |
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 ~/temp_tree
-          mkdir -p /home/runner/fox_12.1/device/samsung/gta9p
-          cp -rf ~/temp_tree/* /home/runner/fox_12.1/device/samsung/gta9p/
-          rm -f /home/runner/fox_12.1/device/samsung/gta9p/vendorsetup.sh
+          DEVICE_PATH="/home/runner/fox_12.1/device/samsung/gta9p"
+          mkdir -p $DEVICE_PATH
+          cp -rf ~/temp_tree/* $DEVICE_PATH/
+          
+          # Instead of deleting, create a CLEAN vendorsetup.sh
+          # This tells 'lunch' exactly what it needs to know without buggy code
+          echo 'add_lunch_combo twrp_gta9p-eng' > $DEVICE_PATH/vendorsetup.sh
+          chmod +x $DEVICE_PATH/vendorsetup.sh
 
       - name: Build OrangeFox
         run: |
           cd /home/runner/fox_12.1
+          # Essential Build Variables
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
+          
+          # Run the build
           source build/envsetup.sh
           lunch twrp_gta9p-eng
           mka recoveryimage
