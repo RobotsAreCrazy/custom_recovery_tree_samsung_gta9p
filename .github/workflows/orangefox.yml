@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v29
+name: OrangeFox Build - Final v30
 
 on:
   workflow_dispatch:
@@ -47,21 +47,20 @@ jobs:
 
       - name: Final Build
         run: |
-          # 1. Find the TRUE Android root (must contain build/envsetup.sh)
+          # 1. Identify paths based on the successful log in 1000025244.jpg
           BUILD_ROOT=$(find $GITHUB_WORKSPACE -name "envsetup.sh" | grep "build/envsetup.sh" | head -n 1 | xargs dirname | xargs dirname)
-          echo "True Build root identified at: $BUILD_ROOT"
+          DEVICE_PATH=$(find $GITHUB_WORKSPACE -name "twrp_gta9p.mk" | head -n 1 | xargs dirname)
+          
+          if [ -z "$BUILD_ROOT" ]; then echo "ERROR: Could not find build root"; exit 1; fi
+          
           cd "$BUILD_ROOT"
           
-          # 2. Find the REAL device path
-          REAL_DEVICE_PATH=$(find $GITHUB_WORKSPACE -name "twrp_gta9p.mk" | head -n 1 | xargs dirname)
-          echo "Device files confirmed at: $REAL_DEVICE_PATH"
+          # 2. Fix Manifests
+          rm -f $DEVICE_PATH/vendorsetup.sh
+          echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > $DEVICE_PATH/AndroidProducts.mk
+          echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> $DEVICE_PATH/AndroidProducts.mk
           
-          # 3. Setup the build links
-          rm -f $REAL_DEVICE_PATH/vendorsetup.sh
-          echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > $REAL_DEVICE_PATH/AndroidProducts.mk
-          echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> $REAL_DEVICE_PATH/AndroidProducts.mk
-          
-          # 4. Exports
+          # 3. Exports
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
@@ -69,8 +68,9 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           
-          # 5. Execute Build with absolute path sourcing
-          bash -c "source $BUILD_ROOT/build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
+          # 4. Start Compilation
+          # We use a full path for source to avoid any 'no such file' errors
+          /bin/bash -c "source $BUILD_ROOT/build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
         if: always()
