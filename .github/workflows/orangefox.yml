@@ -5,13 +5,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Build OrangeFox
-        uses: HazzK/OrangeFox-Builder@master
+        uses: NSR-XINE/OrangeFox-Action-Builder@master
         with:
           args: >
             --branch 12.1
