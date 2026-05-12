@@ -1,14 +1,17 @@
 name: OrangeFox Build
+
 on:
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Build
-        uses: OrangeFoxRecovery/OrangeFox-Builder@main
+
+      - name: OrangeFox Build
+        uses: UWU-TEAM/UWU-OrangeFox-Builder@v1.0.0
         with:
           args: >
             --branch 12.1
