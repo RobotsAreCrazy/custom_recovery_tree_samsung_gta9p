@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v21
+name: OrangeFox Build - Final v22
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout
+      - name: Checkout Workspace
         uses: actions/checkout@v4
 
       - name: Cleanup & Maximize Space
@@ -20,10 +20,8 @@ jobs:
           sudo apt-get clean
 
       - name: Set up Build Environment
+          # Using standard apt-get for tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository universe -y
           sudo apt-get update
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 python2 gcc clang libssl-dev
           mkdir -p ~/bin
@@ -34,24 +32,25 @@ jobs:
 
       - name: Sync OrangeFox
         run: |
-          mkdir -p /home/runner/fox_12.1
+          # Use the GITHUB_WORKSPACE instead of /home/runner/
+          mkdir -p $GITHUB_WORKSPACE/fox_12.1
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
           chmod +x "$SYNC_SCRIPT"
           cd $(dirname "$SYNC_SCRIPT")
-          /bin/bash ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1 || true
-          sleep 10 # Brief pause to let network stabilize
+          /bin/bash ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/fox_12.1 || true
 
       - name: Inject Device Tree
         uses: actions/checkout@v4
         with:
           repository: RobotsAreCrazy/custom_recovery_tree_samsung_gta9p
           ref: twrp-12.1
-          path: /home/runner/fox_12.1/device/samsung/gta9p
+          # This path is now inside the workspace, which solves the error in Image 231
+          path: fox_12.1/device/samsung/gta9p
 
       - name: Final Build
         run: |
-          cd /home/runner/fox_12.1
+          cd $GITHUB_WORKSPACE/fox_12.1
           DEVICE_PATH="device/samsung/gta9p"
           
           # 1. Setup Manifests
@@ -76,5 +75,5 @@ jobs:
         with:
           name: OrangeFox-A9P-Final
           path: |
-            /home/runner/fox_12.1/out/target/product/gta9p/OrangeFox*.zip
-            /home/runner/fox_12.1/out/target/product/gta9p/recovery.img
+            ${{ github.workspace }}/fox_12.1/out/target/product/gta9p/OrangeFox*.zip
+            ${{ github.workspace }}/fox_12.1/out/target/product/gta9p/recovery.img
