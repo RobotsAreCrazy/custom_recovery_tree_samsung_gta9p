@@ -13,8 +13,11 @@ jobs:
       - name: OrangeFox Build
         uses: UWU-TEAM/UWU-OrangeFox-Builder@v1.0.0
         with:
-          args: >
-            --branch 12.1
-            --device gta9p
-            --path device/samsung/gta9p
-            --owner RobotsAreCrazy
+          USER_NAME: "RobotsAreCrazy"
+          USER_EMAIL: "your-email@example.com"
+          DEVICE_TREE: "https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p"
+          DEVICE_TREE_BRANCH: "twrp-12.1"
+          DEVICE_PATH: "device/samsung/gta9p"
+          DEVICE_NAME: "gta9p"
+          BUILD_TARGET: "recovery"
+          GH_RELEASE: "true"
