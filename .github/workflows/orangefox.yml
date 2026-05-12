@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v35
+name: OrangeFox Build - Final v36
 
 on:
   workflow_dispatch:
@@ -40,7 +40,8 @@ jobs:
 
       - name: Inject Tree & Start Build
         run: |
-          # 1. Inject
+          # 1. Clean and Inject
+          rm -rf /home/runner/fox/device/samsung/gta9p
           mkdir -p /home/runner/fox/device/samsung/gta9p
           git clone -b twrp-12.1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git /home/runner/fox/device/samsung/gta9p
           
