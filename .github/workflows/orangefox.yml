@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v12
+name: OrangeFox Build - Final v13
 
 on:
   workflow_dispatch:
@@ -39,32 +39,33 @@ jobs:
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
           chmod +x "$SYNC_SCRIPT"
           cd $(dirname "$SYNC_SCRIPT")
-          
-          # CRITICAL: Added '|| true' to ignore the script's manual-stop exit code
+          # Ignore the script's exit code so we can continue to the build
           /bin/bash ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1 || true
 
       - name: Inject Device Tree & Build
         run: |
           cd /home/runner/fox_12.1
           
-          # 1. Clone device tree into the correct location
+          # 1. THE FIX: Remove the folder if it exists to prevent 'Exit code 1'
+          rm -rf device/samsung/gta9p
+          
+          # 2. Clone device tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
           
-          # 2. Setup the OrangeFox-style AndroidProducts
+          # 3. Setup AndroidProducts
           DEVICE_PATH="device/samsung/gta9p"
           rm -f $DEVICE_PATH/vendorsetup.sh
           echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > $DEVICE_PATH/AndroidProducts.mk
           echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> $DEVICE_PATH/AndroidProducts.mk
           echo "FOX_BUILD_DEVICE := gta9p" >> $DEVICE_PATH/BoardConfig.mk
           
-          # 3. Environment variables
+          # 4. Final Build Sequence
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           
-          # 4. Final Build Sequence
           /bin/bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
