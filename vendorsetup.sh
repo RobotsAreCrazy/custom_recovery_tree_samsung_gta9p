@@ -88,4 +88,4 @@ if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	fi
 fi
 #
-COMMON_LUNCH_CHOICES := twrp_gta9p-eng
+
