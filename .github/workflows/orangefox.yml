@@ -1,4 +1,4 @@
-name: OrangeFox Build (Stabilized)
+name: OrangeFox Build (Flat Tree Final)
 
 on:
   workflow_dispatch:
@@ -13,7 +13,6 @@ jobs:
       - name: Setup Environment
         run: |
           sudo apt update
-          # dos2unix is the secret weapon to fix the 'exit code 1'
           sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync curl bc zip unzip python-is-python3 dos2unix
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
@@ -29,13 +28,13 @@ jobs:
           cd ~/orangefox_sync
           ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1
           
-          # Clone your RECTIFIED tree
-          cd /home/runner/fox_12.1
-          git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 device/samsung/gta9p
+          # Clone your FLAT tree into the target folder
+          mkdir -p /home/runner/fox_12.1/device/samsung/gta9p
+          git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 /home/runner/fox_12.1/device/samsung/gta9p
           
-          # AUTO-FIX: This removes any hidden Windows characters from your vendorsetup.sh
-          dos2unix device/samsung/gta9p/vendorsetup.sh
-          touch device/samsung/gta9p/OrangeFoxConfig.sh
+          # Scrub hidden characters to prevent Exit Code 1
+          dos2unix /home/runner/fox_12.1/device/samsung/gta9p/vendorsetup.sh
+          touch /home/runner/fox_12.1/device/samsung/gta9p/OrangeFoxConfig.sh
 
       - name: Build
         run: |
@@ -45,7 +44,5 @@ jobs:
           export FOX_USE_TWRP_DT=1
           export LC_ALL="C"
           
-          # If the complex script fails, we fallback to a simple lunch command
-          lunch twrp_gta9p-eng || (echo "Complex script failed, trying simple lunch..." && echo "add_lunch_combo twrp_gta9p-eng" > device/samsung/gta9p/vendorsetup.sh && lunch twrp_gta9p-eng)
-          
+          lunch twrp_gta9p-eng
           mka recoveryimage
