@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v30
+name: OrangeFox Build - Final v31
 
 on:
   workflow_dispatch:
@@ -36,6 +36,7 @@ jobs:
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
           chmod +x "$SYNC_SCRIPT"
           cd $(dirname "$SYNC_SCRIPT")
+          # Syncing specifically into the 'work' directory
           /bin/bash ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/work || true
 
       - name: Inject Device Tree
@@ -43,16 +44,17 @@ jobs:
         with:
           repository: RobotsAreCrazy/custom_recovery_tree_samsung_gta9p
           ref: twrp-12.1
+          # Ensuring it goes into the correct subfolder
           path: work/device/samsung/gta9p
 
       - name: Final Build
         run: |
-          # 1. Identify paths based on the successful log in 1000025244.jpg
-          BUILD_ROOT=$(find $GITHUB_WORKSPACE -name "envsetup.sh" | grep "build/envsetup.sh" | head -n 1 | xargs dirname | xargs dirname)
-          DEVICE_PATH=$(find $GITHUB_WORKSPACE -name "twrp_gta9p.mk" | head -n 1 | xargs dirname)
+          # 1. Define the Build Root based on the path confirmed in Image 245
+          # We manually set it to avoid 'find' errors.
+          export BUILD_ROOT="$GITHUB_WORKSPACE/work"
+          export DEVICE_PATH="$BUILD_ROOT/device/samsung/gta9p"
           
-          if [ -z "$BUILD_ROOT" ]; then echo "ERROR: Could not find build root"; exit 1; fi
-          
+          echo "Build root set to: $BUILD_ROOT"
           cd "$BUILD_ROOT"
           
           # 2. Fix Manifests
@@ -69,8 +71,8 @@ jobs:
           export SKIP_API_CHECK=true
           
           # 4. Start Compilation
-          # We use a full path for source to avoid any 'no such file' errors
-          /bin/bash -c "source $BUILD_ROOT/build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
+          # Using bash -i to ensure environment is fully loaded if needed
+          bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
         if: always()
