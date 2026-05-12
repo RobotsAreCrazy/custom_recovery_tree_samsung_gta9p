@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v31
+name: OrangeFox Build - Final v32
 
 on:
   workflow_dispatch:
@@ -31,38 +31,32 @@ jobs:
 
       - name: Sync OrangeFox
         run: |
-          mkdir -p work
+          # Use a dedicated folder in the runner's home to avoid GitHub Workspace restrictions
+          mkdir -p ~/fox
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
           SYNC_SCRIPT=$(find ~/orangefox_sync -name "orangefox_sync.sh" | head -n 1)
           chmod +x "$SYNC_SCRIPT"
           cd $(dirname "$SYNC_SCRIPT")
-          # Syncing specifically into the 'work' directory
-          /bin/bash ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/work || true
+          # Syncing to a clean, absolute path
+          /bin/bash ./orangefox_sync.sh --branch 12.1 --path ~/fox || true
 
       - name: Inject Device Tree
-        uses: actions/checkout@v4
-        with:
-          repository: RobotsAreCrazy/custom_recovery_tree_samsung_gta9p
-          ref: twrp-12.1
-          # Ensuring it goes into the correct subfolder
-          path: work/device/samsung/gta9p
+        run: |
+          # Manual injection to ensure it lands in the right place
+          mkdir -p ~/fox/device/samsung/gta9p
+          git clone -b twrp-12.1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git ~/fox/device/samsung/gta9p
 
       - name: Final Build
         run: |
-          # 1. Define the Build Root based on the path confirmed in Image 245
-          # We manually set it to avoid 'find' errors.
-          export BUILD_ROOT="$GITHUB_WORKSPACE/work"
-          export DEVICE_PATH="$BUILD_ROOT/device/samsung/gta9p"
+          cd ~/fox
+          DEVICE_PATH="device/samsung/gta9p"
           
-          echo "Build root set to: $BUILD_ROOT"
-          cd "$BUILD_ROOT"
-          
-          # 2. Fix Manifests
+          # Setup Manifests
           rm -f $DEVICE_PATH/vendorsetup.sh
           echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > $DEVICE_PATH/AndroidProducts.mk
           echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> $DEVICE_PATH/AndroidProducts.mk
           
-          # 3. Exports
+          # Exports
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
@@ -70,8 +64,7 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           
-          # 4. Start Compilation
-          # Using bash -i to ensure environment is fully loaded if needed
+          # Build
           bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
@@ -80,5 +73,5 @@ jobs:
         with:
           name: OrangeFox-A9P-Final
           path: |
-            **/OrangeFox*.zip
-            **/recovery.img
+            ~/fox/out/target/product/gta9p/OrangeFox*.zip
+            ~/fox/out/target/product/gta9p/recovery.img
