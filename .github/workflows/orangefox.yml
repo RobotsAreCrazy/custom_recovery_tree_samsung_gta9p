@@ -1,4 +1,4 @@
-name: OrangeFox Build (Flat Tree Final)
+name: OrangeFox Build (Nuclear Fix)
 
 on:
   workflow_dispatch:
@@ -21,20 +21,37 @@ jobs:
           git config --global user.name "RobotsAreCrazy"
           git config --global user.email "robotsarecrazy@github.com"
 
-      - name: Sync OrangeFox 12.1
+      - name: Sync & Force-Clean Tree
         run: |
           mkdir -p /home/runner/fox_12.1
           git clone https://gitlab.com/OrangeFox/sync.git ~/orangefox_sync
           cd ~/orangefox_sync
           ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1
           
-          # Clone your FLAT tree into the target folder
+          # 1. Create target folder and clone your tree
           mkdir -p /home/runner/fox_12.1/device/samsung/gta9p
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p -b twrp-12.1 /home/runner/fox_12.1/device/samsung/gta9p
           
-          # Scrub hidden characters to prevent Exit Code 1
-          dos2unix /home/runner/fox_12.1/device/samsung/gta9p/vendorsetup.sh
-          touch /home/runner/fox_12.1/device/samsung/gta9p/OrangeFoxConfig.sh
+          # 2. NUCLEAR FIX: Wipe the local script and rewrite it perfectly for Linux
+          cd /home/runner/fox_12.1/device/samsung/gta9p
+          rm -f vendorsetup.sh
+          cat <<EOF > vendorsetup.sh
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export LC_ALL="C"
+          export OF_MAINTAINER="Crypton"
+          export FOX_VERSION="R11.1"
+          export FOX_BUILD_TYPE=beta
+          export FOX_ARCH=arm64
+          export FOX_VARIANT="12.1"
+          export TARGET_DEVICE_ALT="gta9p"
+          export OF_SCREEN_H=2400
+          export OF_PATCH_AVB20=1
+          export FOX_BUGGED_AOSP_ARB_WORKAROUND="1616300800"
+          true
+          EOF
+          
+          chmod +x vendorsetup.sh
+          touch OrangeFoxConfig.sh
 
       - name: Build
         run: |
