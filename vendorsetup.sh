@@ -79,11 +79,5 @@ if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
     export OF_DEFAULT_KEYMASTER_VERSION=4.0
     export FOX_BUGGED_AOSP_ARB_WORKAROUND="1616300800"; # Sun 21 Mar 04:26:40 GMT 2021
 
-	# let's see what are our build VARs
-	# if [ -n "$FOX_BUILD_LOG_FILE" -a -f "$FOX_BUILD_LOG_FILE" ]; then
-		# export | grep "FOX" >> $FOX_BUILD_LOG_FILE
-		# export | grep "OF_" >> $FOX_BUILD_LOG_FILE
-		# export | grep "TARGET_" >> $FOX_BUILD_LOG_FILE
-		# export | grep "TW_" >> $FOX_BUILD_LOG_FILE
-	fi
+	true
 fi
