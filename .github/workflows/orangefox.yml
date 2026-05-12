@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v45
+name: OrangeFox Build - Final v46
 
 on:
   workflow_dispatch:
@@ -48,11 +48,12 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Patch Source and Build
+          # 2. Surgical Patch and Build
           cd /home/runner/fox
           
-          # Physically remove the check from the source file mentioned in 1000025265.jpg
-          sed -i '/FOX_VERSION/d' bootable/recovery/orangefox.mk
+          # Comment out the error line rather than deleting it to avoid the 'extraneous endif' error
+          # seen in 1000025266.jpg
+          sed -i 's/$(error "FOX_VERSION" is obsolete.*/# Disabled obsolete check/' bootable/recovery/orangefox.mk
           
           cat << 'EOF' > builder.sh
           #!/bin/bash
