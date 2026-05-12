@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v28
+name: OrangeFox Build - Final v29
 
 on:
   workflow_dispatch:
@@ -47,14 +47,14 @@ jobs:
 
       - name: Final Build
         run: |
-          # 1. Find the REAL build root (Looking for the directory containing the 'build' folder)
-          BUILD_ROOT=$(find $GITHUB_WORKSPACE -type d -name "build" | head -n 1 | xargs dirname)
-          echo "True Build root found at: $BUILD_ROOT"
+          # 1. Find the TRUE Android root (must contain build/envsetup.sh)
+          BUILD_ROOT=$(find $GITHUB_WORKSPACE -name "envsetup.sh" | grep "build/envsetup.sh" | head -n 1 | xargs dirname | xargs dirname)
+          echo "True Build root identified at: $BUILD_ROOT"
           cd "$BUILD_ROOT"
           
           # 2. Find the REAL device path
           REAL_DEVICE_PATH=$(find $GITHUB_WORKSPACE -name "twrp_gta9p.mk" | head -n 1 | xargs dirname)
-          echo "Device files found at: $REAL_DEVICE_PATH"
+          echo "Device files confirmed at: $REAL_DEVICE_PATH"
           
           # 3. Setup the build links
           rm -f $REAL_DEVICE_PATH/vendorsetup.sh
@@ -69,7 +69,7 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           
-          # 5. Build - Using absolute paths to source to be 100% sure
+          # 5. Execute Build with absolute path sourcing
           bash -c "source $BUILD_ROOT/build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
