@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v39
+name: OrangeFox Build - Final v40
 
 on:
   workflow_dispatch:
@@ -38,9 +38,9 @@ jobs:
           cd $(dirname "$SYNC_SCRIPT")
           /bin/bash ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox || true
 
-      - name: Inject Tree & Start Build
+      - name: Build Execution
         run: |
-          # 1. Fetch Tree
+          # 1. Inject Tree
           mkdir -p /home/runner/fox/device/samsung/gta9p
           cd /home/runner/fox/device/samsung/gta9p
           git init
@@ -48,17 +48,10 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Hard-Config (Don't let errors here stop us)
+          # 2. Create a dedicated build script to bypass runner shell quirks
           cd /home/runner/fox
-          rm -f device/samsung/gta9p/vendorsetup.sh || true
-          
-          # Ensure directories exist for the makefiles
-          mkdir -p device/samsung/gta9p
-          
-          printf 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk\n' > device/samsung/gta9p/AndroidProducts.mk
-          printf 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng\n' >> device/samsung/gta9p/AndroidProducts.mk
-          
-          # 3. Environment & Build
+          cat << 'EOF' > builder.sh
+          #!/bin/bash
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
@@ -67,8 +60,18 @@ jobs:
           export SKIP_API_CHECK=true
           export FOX_VERSION="R12.1"
           
-          # Use a subshell for the source/lunch/mka to keep env clean
-          /bin/bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
+          # Force create the AndroidProducts.mk
+          mkdir -p device/samsung/gta9p
+          echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > device/samsung/gta9p/AndroidProducts.mk
+          echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> device/samsung/gta9p/AndroidProducts.mk
+          
+          source build/envsetup.sh
+          lunch twrp_gta9p-eng
+          mka recoveryimage -j$(nproc --all)
+          EOF
+
+          chmod +x builder.sh
+          ./builder.sh
 
       - name: Upload Artifacts
         if: always()
