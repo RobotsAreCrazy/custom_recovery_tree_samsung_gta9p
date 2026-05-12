@@ -10,17 +10,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Cleanup and Setup
+      - name: Install Build Tools
         run: |
           sudo apt update
           sudo apt install -y git aria2 python3-pip gperf libxml2-utils rsync
+          # Install the 'repo' tool manually
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+rx ~/bin/repo
+          sudo ln -sf ~/bin/repo /usr/bin/repo
+          # Setup git identity
           git config --global user.name "RobotsAreCrazy"
           git config --global user.email "robotsarecrazy@github.com"
 
       - name: Manual Sync
         run: |
           mkdir ~/fox_12.1 && cd ~/fox_12.1
-          # Initialize minimal manifest manually to skip the broken patch script
           repo init -u https://gitlab.com/OrangeFox/manifest.git -b fox_12.1 --depth=1
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
           
