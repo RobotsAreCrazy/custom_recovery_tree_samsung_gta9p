@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v43
+name: OrangeFox Build - Final v44
 
 on:
   workflow_dispatch:
@@ -48,10 +48,13 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Refined Build Script
+          # 2. Build Script
           cd /home/runner/fox
           cat << 'EOF' > builder.sh
           #!/bin/bash
+          # Physically remove the problematic variable
+          unset FOX_VERSION
+          
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
@@ -59,10 +62,9 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           
-          # Explicitly set the required versioning variable found in 1000025262.jpg
+          # Use the new required variable
           export FOX_MAINTAINER_PATCH_VERSION="1"
           
-          # Force clean the lunch choices to ensure gta9p is selected
           source build/envsetup.sh
           lunch twrp_gta9p-eng
           mka recoveryimage -j$(nproc --all)
