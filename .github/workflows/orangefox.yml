@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v38
+name: OrangeFox Build - Final v39
 
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
 
       - name: Inject Tree & Start Build
         run: |
-          # 1. Direct fetch to avoid clone directory conflicts
+          # 1. Fetch Tree
           mkdir -p /home/runner/fox/device/samsung/gta9p
           cd /home/runner/fox/device/samsung/gta9p
           git init
@@ -48,20 +48,26 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Configure Build
+          # 2. Hard-Config (Don't let errors here stop us)
           cd /home/runner/fox
-          rm -f device/samsung/gta9p/vendorsetup.sh
-          echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk' > device/samsung/gta9p/AndroidProducts.mk
-          echo 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng' >> device/samsung/gta9p/AndroidProducts.mk
+          rm -f device/samsung/gta9p/vendorsetup.sh || true
           
-          # 3. Compile
+          # Ensure directories exist for the makefiles
+          mkdir -p device/samsung/gta9p
+          
+          printf 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/twrp_gta9p.mk\n' > device/samsung/gta9p/AndroidProducts.mk
+          printf 'COMMON_LUNCH_CHOICES := twrp_gta9p-eng\n' >> device/samsung/gta9p/AndroidProducts.mk
+          
+          # 3. Environment & Build
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
+          export FOX_VERSION="R12.1"
           
+          # Use a subshell for the source/lunch/mka to keep env clean
           /bin/bash -c "source build/envsetup.sh && lunch twrp_gta9p-eng && mka recoveryimage -j$(nproc --all)"
 
       - name: Upload Artifacts
