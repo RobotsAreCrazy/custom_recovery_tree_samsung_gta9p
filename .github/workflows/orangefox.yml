@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v44
+name: OrangeFox Build - Final v45
 
 on:
   workflow_dispatch:
@@ -48,21 +48,20 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Build Script
+          # 2. Patch Source and Build
           cd /home/runner/fox
+          
+          # Physically remove the check from the source file mentioned in 1000025265.jpg
+          sed -i '/FOX_VERSION/d' bootable/recovery/orangefox.mk
+          
           cat << 'EOF' > builder.sh
           #!/bin/bash
-          # Physically remove the problematic variable
-          unset FOX_VERSION
-          
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=gta9p
           export LC_ALL=C
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
-          
-          # Use the new required variable
           export FOX_MAINTAINER_PATCH_VERSION="1"
           
           source build/envsetup.sh
