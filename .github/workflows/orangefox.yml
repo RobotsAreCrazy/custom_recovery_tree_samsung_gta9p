@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v50
+name: OrangeFox Build - Final v51
 
 on:
   workflow_dispatch:
@@ -71,13 +71,14 @@ jobs:
           source build/envsetup.sh
           lunch twrp_gta9p-eng
 
-          # --- AGGRESSIVE FIX FOR SYMLINK ERROR (1000025296.jpg) ---
-          # We delete these right before mka starts to ensure the path is clear for symlinks.
-          echo "Clearing conflicting vendor directories..."
-          rm -rf device/samsung/gta9p/recovery/root/vendor
-          rm -rf out/target/product/gta9p/recovery/root/vendor
+          # --- THE v51 NUCLEAR PURGE (Fix for 1000025302.jpg) ---
+          # Searches for and destroys any 'vendor' directory in recovery roots 
+          # to make room for the symlink.
+          echo "Executing Nuclear Purge of conflicting vendor directories..."
+          find device/samsung/gta9p/recovery/root -name "vendor" -type d -exec rm -rf {} +
+          find out/target/product/gta9p/recovery/root -name "vendor" -type d -exec rm -rf {} +
 
-          # Using -j2 to keep RAM usage under the 7GB GitHub limit
+          # Final build command with restricted memory usage
           mka recoveryimage -j2
           EOF
 
