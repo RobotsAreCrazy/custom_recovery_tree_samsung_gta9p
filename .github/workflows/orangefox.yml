@@ -1,4 +1,4 @@
-name: OrangeFox Build - v55 Surgical Fix
+name: OrangeFox Build - v56 Manual Packaging
 
 on:
   workflow_dispatch:
@@ -48,11 +48,9 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Universal Patching & Tree Cleanup
+          # 2. Universal Patching
           cd /home/runner/fox
           find bootable/recovery -name "orangefox.mk" -exec sed -i 's/\$(error.*FOX_VERSION.*is obsolete.*)/$(warning Obsolete check bypassed)/g' {} +
-          
-          # Ensure the source tree doesn't have a physical vendor folder blocking the link later
           rm -rf device/samsung/gta9p/recovery/root/vendor
           
           cat << 'EOF' > builder.sh
@@ -63,35 +61,32 @@ jobs:
           export FOX_USE_TWRP_DT=1
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
-          export FOX_MAINTAINER_PATCH_VERSION="1"
-
-          # --- STABILITY & SIZE FIXES ---
           export FOX_VANILLA_BUILD=1
-          export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
           export OF_USE_LZMA_COMPRESSION=1
-          export FOX_DRASTIC_SIZE_REDUCTION=1
-          
+
           source build/envsetup.sh
           lunch twrp_gta9p-eng
 
-          # --- THE v55 TWO-PASS STRATEGY ---
-          # Pass 1: Run the build. We expect it to fail at ~56m with the mkdir error.
-          # The '|| true' allows the script to continue after the error.
-          echo "Starting Pass 1 (Binary Compilation)..."
-          mka recoveryimage -j$(nproc --all) || true
+          # --- PASS 1: BINARY COMPILATION ---
+          # We run mka to get all .o and binary files ready. 
+          # It will "fail" at the packaging stage, which we ignore.
+          echo "Compiling binaries (Pass 1)..."
+          mka recoveryimage || true
 
-          # Pass 2: The Surgical Fix
-          # Now that Ninja has created its directories, we wipe the physical /vendor folder 
-          # and replace it with the symlink before the final ramdisk is packed.
-          if [ -d "out/target/product/gta9p/recovery/root/vendor" ]; then
-              echo "Pass 1 reached mkdir conflict. Applying symlink fix..."
-              rm -rf out/target/product/gta9p/recovery/root/vendor
-              ln -sf /system/vendor out/target/product/gta9p/recovery/root/vendor
-          fi
+          # --- THE v56 OVERRIDE ---
+          # Now we manually fix the filesystem that caused the 93% crash.
+          echo "Manually fixing vendor symlink..."
+          rm -rf out/target/product/gta9p/recovery/root/vendor
+          ln -sf /system/vendor out/target/product/gta9p/recovery/root/vendor
 
-          # Final Pass: Wrap everything into the .img file
-          echo "Starting Final Pass (Packaging)..."
-          mka recoveryimage -j2
+          # --- PASS 2: TARGETED PACKAGING ---
+          # Instead of calling 'mka recoveryimage' (which triggers the error),
+          # we call the internal tools to finish the job.
+          echo "Packaging Ramdisk..."
+          make -j$(nproc --all) out/target/product/gta9p/ramdisk-recovery.img
+
+          echo "Finalizing Recovery Image..."
+          make -j$(nproc --all) out/target/product/gta9p/recovery.img
           EOF
 
           chmod +x builder.sh
@@ -101,7 +96,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-A9P-v55
+          name: OrangeFox-v56-Final
           path: |
             /home/runner/fox/out/target/product/gta9p/OrangeFox*.zip
             /home/runner/fox/out/target/product/gta9p/recovery.img
