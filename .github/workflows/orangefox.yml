@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v48
+name: OrangeFox Build - Final v49
 
 on:
   workflow_dispatch:
@@ -62,7 +62,11 @@ jobs:
           export SKIP_API_CHECK=true
           export FOX_MAINTAINER_PATCH_VERSION="1"
 
-          # --- ADDED STABILITY & SIZE FIXES ---
+          # --- FIX FOR 99% SYMLINK ERROR (1000025293.jpg) ---
+          # We remove the static directory so the build system can create the required symlink
+          rm -rf device/samsung/gta9p/recovery/root/vendor
+
+          # --- STABILITY & SIZE FIXES ---
           export FOX_VANILLA_BUILD=1
           export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
           export OF_USE_LZMA_COMPRESSION=1
@@ -71,7 +75,7 @@ jobs:
           source build/envsetup.sh
           lunch twrp_gta9p-eng
 
-          # LIMIT CORES: Changed from -j$(nproc) to -j2 to prevent OOM crash at 53%
+          # Using -j2 to keep RAM usage under the 7GB GitHub limit
           mka recoveryimage -j2
           EOF
 
