@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v47
+name: OrangeFox Build - Final v48
 
 on:
   workflow_dispatch:
@@ -50,9 +50,6 @@ jobs:
           
           # 2. Universal Patching
           cd /home/runner/fox
-          
-          # Use a broader regex to find and neutralize the error line mentioned in 1000025267.jpg
-          # This replaces the $(error ...) call with a harmless echo warning
           find bootable/recovery -name "orangefox.mk" -exec sed -i 's/\$(error.*FOX_VERSION.*is obsolete.*)/$(warning Obsolete check bypassed)/g' {} +
           
           cat << 'EOF' > builder.sh
@@ -64,10 +61,18 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           export FOX_MAINTAINER_PATCH_VERSION="1"
+
+          # --- ADDED STABILITY & SIZE FIXES ---
+          export FOX_VANILLA_BUILD=1
+          export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
+          export OF_USE_LZMA_COMPRESSION=1
+          export FOX_DRASTIC_SIZE_REDUCTION=1
           
           source build/envsetup.sh
           lunch twrp_gta9p-eng
-          mka recoveryimage -j$(nproc --all)
+
+          # LIMIT CORES: Changed from -j$(nproc) to -j2 to prevent OOM crash at 53%
+          mka recoveryimage -j2
           EOF
 
           chmod +x builder.sh
