@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v54
+name: OrangeFox Build - v55 Surgical Fix
 
 on:
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
           cd /home/runner/fox
           find bootable/recovery -name "orangefox.mk" -exec sed -i 's/\$(error.*FOX_VERSION.*is obsolete.*)/$(warning Obsolete check bypassed)/g' {} +
           
-          # Remove the source folder immediately
+          # Ensure the source tree doesn't have a physical vendor folder blocking the link later
           rm -rf device/samsung/gta9p/recovery/root/vendor
           
           cat << 'EOF' > builder.sh
@@ -74,15 +74,23 @@ jobs:
           source build/envsetup.sh
           lunch twrp_gta9p-eng
 
-          # --- THE v54 ULTIMATE SYMLINK FIX ---
-          # We manually create the symlink AND remove the directory right before the packaging phase
-          # This command modifies the device tree on-the-fly inside the OUT directory
-          echo "Force-clearing staging area for symlinks..."
-          rm -rf out/target/product/gta9p/recovery/root/vendor
-          mkdir -p out/target/product/gta9p/recovery/root
-          ln -sf /system/vendor out/target/product/gta9p/recovery/root/vendor
+          # --- THE v55 TWO-PASS STRATEGY ---
+          # Pass 1: Run the build. We expect it to fail at ~56m with the mkdir error.
+          # The '|| true' allows the script to continue after the error.
+          echo "Starting Pass 1 (Binary Compilation)..."
+          mka recoveryimage -j$(nproc --all) || true
 
-          # Final build with restricted memory to avoid OOM
+          # Pass 2: The Surgical Fix
+          # Now that Ninja has created its directories, we wipe the physical /vendor folder 
+          # and replace it with the symlink before the final ramdisk is packed.
+          if [ -d "out/target/product/gta9p/recovery/root/vendor" ]; then
+              echo "Pass 1 reached mkdir conflict. Applying symlink fix..."
+              rm -rf out/target/product/gta9p/recovery/root/vendor
+              ln -sf /system/vendor out/target/product/gta9p/recovery/root/vendor
+          fi
+
+          # Final Pass: Wrap everything into the .img file
+          echo "Starting Final Pass (Packaging)..."
           mka recoveryimage -j2
           EOF
 
@@ -93,7 +101,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-A9P-Final
+          name: OrangeFox-A9P-v55
           path: |
             /home/runner/fox/out/target/product/gta9p/OrangeFox*.zip
             /home/runner/fox/out/target/product/gta9p/recovery.img
