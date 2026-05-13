@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final v51
+name: OrangeFox Build - Final v52
 
 on:
   workflow_dispatch:
@@ -48,9 +48,12 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Universal Patching
+          # 2. Universal Patching & Source Cleanup
           cd /home/runner/fox
           find bootable/recovery -name "orangefox.mk" -exec sed -i 's/\$(error.*FOX_VERSION.*is obsolete.*)/$(warning Obsolete check bypassed)/g' {} +
+          
+          # Remove the folder from the source tree before building
+          rm -rf device/samsung/gta9p/recovery/root/vendor
           
           cat << 'EOF' > builder.sh
           #!/bin/bash
@@ -71,14 +74,15 @@ jobs:
           source build/envsetup.sh
           lunch twrp_gta9p-eng
 
-          # --- THE v51 NUCLEAR PURGE (Fix for 1000025302.jpg) ---
-          # Searches for and destroys any 'vendor' directory in recovery roots 
-          # to make room for the symlink.
-          echo "Executing Nuclear Purge of conflicting vendor directories..."
-          find device/samsung/gta9p/recovery/root -name "vendor" -type d -exec rm -rf {} +
-          find out/target/product/gta9p/recovery/root -name "vendor" -type d -exec rm -rf {} +
+          # --- THE v52 SYMLINK BYPASS (Fix for 1000025303.jpg) ---
+          # We manually create the symlink in the output staging area.
+          # If the symlink already exists, the build's rsync/mkdir won't fail.
+          echo "Pre-emptively creating vendor symlink..."
+          mkdir -p out/target/product/gta9p/recovery/root
+          rm -rf out/target/product/gta9p/recovery/root/vendor
+          ln -sf /system/vendor out/target/product/gta9p/recovery/root/vendor
 
-          # Final build command with restricted memory usage
+          # Use -j2 for RAM stability
           mka recoveryimage -j2
           EOF
 
