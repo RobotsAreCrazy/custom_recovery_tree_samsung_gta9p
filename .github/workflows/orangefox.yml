@@ -1,4 +1,4 @@
-name: OrangeFox Build - v56-58 Fixes Combined
+name: OrangeFox Build - v59 Final Interception
 
 on:
   workflow_dispatch:
@@ -48,15 +48,8 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. THE v58 DIRECTORY CLEANUP
-          # We wipe the problematic directory in BOTH the source and the potential output path.
-          # This prevents the "cannot delete non-empty directory" error from 1000025309.jpg
+          # 2. Preparation & Patching
           cd /home/runner/fox
-          rm -rf device/samsung/gta9p/recovery/root/vendor
-          mkdir -p out/target/product/gta9p/recovery/root
-          rm -rf out/target/product/gta9p/recovery/root/vendor
-
-          # 3. Patching Obsolete Checks
           find bootable/recovery -name "orangefox.mk" -exec sed -i 's/\$(error.*FOX_VERSION.*is obsolete.*)/$(warning Obsolete check bypassed)/g' {} +
           
           cat << 'EOF' > builder.sh
@@ -74,7 +67,22 @@ jobs:
           source build/envsetup.sh
           lunch twrp_gta9p-eng
 
-          # Build pass
+          # --- v59 PHASE 1: COMPILATION ---
+          # Build only the recovery binary. This avoids the packaging logic 
+          # that causes the /vendor directory conflict seen in 1000025312.jpg.
+          echo "Starting Phase 1: Binary Compilation..."
+          mka recovery -j$(nproc --all)
+
+          # --- v59 PHASE 2: THE INTERCEPTION ---
+          # Ninja is idle. We manually clear the directory and place the symlink.
+          echo "Force-swapping vendor folder for symlink..."
+          rm -rf out/target/product/gta9p/recovery/root/vendor
+          ln -sf /system/vendor out/target/product/gta9p/recovery/root/vendor
+
+          # --- v59 PHASE 3: PACKAGING ---
+          # Now we trigger the full image creation. Since binaries are already 
+          # built, it skips to the end to wrap the ramdisk and kernel.
+          echo "Starting Phase 3: Final Packaging..."
           mka recoveryimage -j$(nproc --all)
           EOF
 
@@ -85,7 +93,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-v58-Final
+          name: OrangeFox-v59-Final
           path: |
             /home/runner/fox/out/target/product/gta9p/OrangeFox*.zip
             /home/runner/fox/out/target/product/gta9p/recovery.img
