@@ -67,6 +67,9 @@ BOARD_RECOVERYIMAGE_PARTITION_SIZE := 0x60E1000
 BOARD_HAS_LARGE_FILESYSTEM := true
 BOARD_SUPPRESS_SECURE_ERASE := true
 
+# Fix for root/vendor symlink conflict (Resolved 99% Build Failure)
+BOARD_HAS_NO_VENDOR_DIRECTORY := true
+
 # OrangeFox Configuration Settings
 FOX_VERSION := R11.1
 FOX_VARIANT := Stable
