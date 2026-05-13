@@ -1,4 +1,4 @@
-name: OrangeFox Build - v56 Manual Packaging
+name: OrangeFox Build - v57 Pre-emptive Fix
 
 on:
   workflow_dispatch:
@@ -48,10 +48,16 @@ jobs:
           git fetch origin twrp-12.1
           git reset --hard FETCH_HEAD
           
-          # 2. Universal Patching
+          # 2. THE v57 PRE-EMPTIVE FIX
+          # We force the symlink into the source directory so the build tool 
+          # accepts it as "truth" before the mapping starts.
           cd /home/runner/fox
-          find bootable/recovery -name "orangefox.mk" -exec sed -i 's/\$(error.*FOX_VERSION.*is obsolete.*)/$(warning Obsolete check bypassed)/g' {} +
           rm -rf device/samsung/gta9p/recovery/root/vendor
+          mkdir -p device/samsung/gta9p/recovery/root
+          ln -sf /system/vendor device/samsung/gta9p/recovery/root/vendor
+
+          # 3. Patching
+          find bootable/recovery -name "orangefox.mk" -exec sed -i 's/\$(error.*FOX_VERSION.*is obsolete.*)/$(warning Obsolete check bypassed)/g' {} +
           
           cat << 'EOF' > builder.sh
           #!/bin/bash
@@ -62,31 +68,16 @@ jobs:
           export OF_MAINTAINER="RobotsAreCrazy"
           export SKIP_API_CHECK=true
           export FOX_VANILLA_BUILD=1
+          export FOX_DRASTIC_SIZE_REDUCTION=1
+          
+          # Use LZMA to keep image size small for the 4GB variant
           export OF_USE_LZMA_COMPRESSION=1
 
           source build/envsetup.sh
           lunch twrp_gta9p-eng
 
-          # --- PASS 1: BINARY COMPILATION ---
-          # We run mka to get all .o and binary files ready. 
-          # It will "fail" at the packaging stage, which we ignore.
-          echo "Compiling binaries (Pass 1)..."
-          mka recoveryimage || true
-
-          # --- THE v56 OVERRIDE ---
-          # Now we manually fix the filesystem that caused the 93% crash.
-          echo "Manually fixing vendor symlink..."
-          rm -rf out/target/product/gta9p/recovery/root/vendor
-          ln -sf /system/vendor out/target/product/gta9p/recovery/root/vendor
-
-          # --- PASS 2: TARGETED PACKAGING ---
-          # Instead of calling 'mka recoveryimage' (which triggers the error),
-          # we call the internal tools to finish the job.
-          echo "Packaging Ramdisk..."
-          make -j$(nproc --all) out/target/product/gta9p/ramdisk-recovery.img
-
-          echo "Finalizing Recovery Image..."
-          make -j$(nproc --all) out/target/product/gta9p/recovery.img
+          # Build everything in one shot
+          mka recoveryimage -j$(nproc --all)
           EOF
 
           chmod +x builder.sh
@@ -96,7 +87,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-v56-Final
+          name: OrangeFox-v57-Final
           path: |
             /home/runner/fox/out/target/product/gta9p/OrangeFox*.zip
             /home/runner/fox/out/target/product/gta9p/recovery.img
