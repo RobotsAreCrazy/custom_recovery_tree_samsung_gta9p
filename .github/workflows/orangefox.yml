@@ -1,4 +1,4 @@
-name: OrangeFox Full - Internal Sideload
+name: OrangeFox - 404 Bypass Success
 
 on:
   workflow_dispatch:
@@ -7,8 +7,15 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Your Files
+      - name: Checkout Your Project
         uses: actions/checkout@v4
+
+      - name: Install Repo Tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+rx ~/bin/repo
+          sudo ln -sf ~/bin/repo /usr/bin/repo
 
       - name: Prep Build Environment
         run: |
@@ -17,21 +24,15 @@ jobs:
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
 
-      - name: Execute Local Sync
+      - name: Execute Emergency Sync
         run: |
-          mkdir -p ~/fox/source
-          # Copy the script you uploaded into the build directory
-          cp orangefox_sync.sh ~/fox/source/
-          cd ~/fox/source
-          chmod +x orangefox_sync.sh
-          
-          # This pulls the source from mirrors, not from the blocked GitHub API
-          ./orangefox_sync.sh --branch 12.1 --path ~/fox/source
+          # Running the script you just created manually
+          bash orangefox_sync.sh
 
       - name: Build Full OrangeFox
         run: |
           cd ~/fox/source
-          # Move your device tree into the synced source
+          # Move your Samsung device tree into the build
           mkdir -p device/samsung/gta9p
           cp -r $GITHUB_WORKSPACE/* device/samsung/gta9p/
           
