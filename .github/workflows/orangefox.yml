@@ -7,8 +7,6 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 300
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout Workspace
@@ -25,10 +23,10 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           
-          # Fix for 1000025334.jpg: Force every GitHub request to use the runner's token
-          git config --global user.email "bot@orangefox.org"
-          git config --global user.name "OrangeFox-Builder"
-          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          # Basic Git Identity
+          git config --global user.email "builder@orangefox.org"
+          git config --global user.name "OrangeFox Builder"
+          git config --global color.ui false
 
       - name: Sync OrangeFox
         run: |
@@ -39,15 +37,19 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # Manual Manifest Clone to bypass the 1000025334.jpg crash
+          # SOLUTION FOR 1000025335.jpg: 
+          # Manually clone the manifest using the GITHUB_TOKEN directly in the URL 
+          # to bypass the "Repository not found" error.
           mkdir -p .repo/manifests
-          git clone --depth=1 https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
+          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
+          
+          # Link the manifest so 'repo' recognizes it
           cp .repo/manifests/default.xml .repo/manifest.xml
           
-          # Initialize locally
-          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --no-clone-bundle
+          # Initialize repo tool pointing to the local directory
+          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1
           
-          # Sync using -j1 to prevent GitHub from throttling the connection
+          # Sync using a single thread to maintain stability
           ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
           
           # Sync Device Tree
@@ -56,8 +58,9 @@ jobs:
       - name: v59 Interception Fix
         run: |
           cd ~/fox
+          # Fix for potential directory conflict crash
           rm -rf out/target/product/gta9p/vendor
-          echo "Fixed v59 directory conflict."
+          echo "Intercepted v59 vendor conflict."
 
       - name: Build Execution
         run: |
