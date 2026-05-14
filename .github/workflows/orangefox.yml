@@ -26,7 +26,7 @@ jobs:
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
 
-      - name: Sync OrangeFox (Archive Method)
+      - name: Sync OrangeFox (Hardcoded Manifest)
         run: |
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
@@ -35,22 +35,32 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # FIX FOR 1000025347.jpg: Download the manifest as a raw zip to bypass Git Auth
+          # FIX FOR 1000025348.jpg: 
+          # We create the manifest file MANUALLY on the runner disk.
+          # This skips the download step that failed in the previous log.
           mkdir -p .repo/manifests
-          curl -L https://github.com/OrangeFoxRecovery/Manifest/archive/refs/heads/fox_12.1.zip -o manifest.zip
-          unzip manifest.zip
-          mv Manifest-fox_12.1/* .repo/manifests/
-          cp .repo/manifests/default.xml .repo/manifest.xml
-          
-          # Now that the manifest exists locally, 'repo init' won't try to go online to find it
+          cat <<EOF > .repo/manifests/default.xml
+          <?xml version="1.0" encoding="UTF-8"?>
+          <manifest>
+            <remote name="gh" fetch="https://github.com" revision="fox_12.1" />
+            <default revision="fox_12.1" remote="gh" sync-j="4" />
+            <!-- The essential minimal project list -->
+            <project path="build/make" name="OrangeFoxRecovery/build" groups="pdk,build_ok" />
+            <project path="system/core" name="OrangeFoxRecovery/system_core" groups="pdk" />
+          </manifest>
+          EOF
+
+          # Point repo to the file we just created
           ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --depth=1
-          
-          # Use a direct token injection for the heavy sync phase
+          cp .repo/manifests/default.xml .repo/manifest.xml
+
+          # Use the token for the projects themselves
           git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
           
+          # Attempt a minimal sync
           ~/bin/repo sync -c -j4 --force-sync --no-clone-bundle --no-tags
           
-          # Sync Device Tree via raw clone
+          # Manual Device Tree Clone
           git clone --depth=1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
