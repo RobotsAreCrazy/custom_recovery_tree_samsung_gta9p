@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 300
     permissions:
-      contents: read # Explicitly gives the runner permission to read repos
+      contents: read
 
     steps:
       - name: Checkout Workspace
@@ -25,10 +25,10 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           
-          # Force identity to satisfy standard Git requirements
-          git config --global user.email "orangefox@build.bot"
+          # Fix for 1000025334.jpg: Force every GitHub request to use the runner's token
+          git config --global user.email "bot@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
-          git config --global color.ui false
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Sync OrangeFox
         run: |
@@ -39,18 +39,18 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # FIX FOR 1000025329.jpg:
-          # We skip the complex 'repo init' authentication loop entirely
-          mkdir -p .repo
+          # Manual Manifest Clone to bypass the 1000025334.jpg crash
+          mkdir -p .repo/manifests
           git clone --depth=1 https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
-          ln -s manifests/default.xml .repo/manifest.xml
+          cp .repo/manifests/default.xml .repo/manifest.xml
           
-          # Tell repo to use the local manifest we just cloned
-          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1
+          # Initialize locally
+          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --no-clone-bundle
           
-          # Sync with j1 to prevent GitHub from flagging the runner as a bot/spam
+          # Sync using -j1 to prevent GitHub from throttling the connection
           ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
           
+          # Sync Device Tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
