@@ -25,34 +25,36 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           
-          # SETUP IDENTITY HERE (Prevents the error in 1000025323.jpg)
-          git config --global user.email "bot@build.com"
-          git config --global user.name "Builder"
+          # HARD-FIX FOR AUTHENTICATION: Setting global identity early
+          git config --global user.email "builder@orangefox.org"
+          git config --global user.name "OrangeFox Builder"
           git config --global color.ui false
 
       - name: Sync OrangeFox
         run: |
-          # 1. Setup local repo tool
+          # 1. Download and use a local repo tool to bypass errors in 1000025324.jpg
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
-          export PATH="$HOME/bin:$PATH"
-
+          
           mkdir ~/fox
           cd ~/fox
           
-          # 2. Use the Mirror + -j1 to bypass the throttle seen in 1000025323.jpg
-          repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1
-          repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
+          # 2. Use the persistent GitHub Mirror with a direct init
+          ~/bin/repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1
           
-          # 3. Sync Device Tree
+          # 3. Use -j1 for initial sync to avoid the 'Authentication' throttle seen in 1000025324.jpg
+          ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
+          
+          # 4. Sync Device Tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
           cd ~/fox
+          # Prevents the directory conflict that previously caused a crash at 52m
           rm -rf out/target/product/gta9p/vendor
-          echo "Intercepted v59 vendor conflict."
+          echo "Fixed v59 vendor conflict."
 
       - name: Build Execution
         run: |
