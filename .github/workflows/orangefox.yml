@@ -24,30 +24,34 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
-          # We are NOT installing 'repo' via apt-get here to avoid the error in 1000025319.jpg
 
       - name: Sync OrangeFox
         run: |
-          # Create a local bin for a fresh repo tool
+          # 1. Setup local repo tool to bypass the error in 1000025320.jpg
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
           export PATH="$HOME/bin:$PATH"
 
+          # 2. Setup Git Identity (Crucial to avoid 'Authentication' errors)
+          git config --global user.email "bot@example.com"
+          git config --global user.name "OrangeFox-Builder"
+          git config --global color.ui false
+
+          # 3. Initialize and Sync
           mkdir ~/fox
           cd ~/fox
-          
-          # Initialize using the fresh local repo and GitHub Mirror
           repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --depth=1
-          repo sync -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
           
+          # 4. Sync Device Tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
           cd ~/fox
           rm -rf out/target/product/gta9p/vendor
-          echo "Intercepted v59 vendor conflict."
+          echo "Fixed the 52-minute directory conflict."
 
       - name: Build Execution
         run: |
