@@ -14,12 +14,21 @@ jobs:
       - name: Checkout Workspace
         uses: actions/checkout@v4
 
+      - name: Cleanup & Maximize Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /usr/local/share/boost /usr/share/swift
+
       - name: Set up Build Environment
         run: |
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
-          # Installs basic tools; prevents the 5-hour hang seen earlier.
+          
+          # SETUP IDENTITY HERE (Prevents the error in 1000025323.jpg)
+          git config --global user.email "bot@build.com"
+          git config --global user.name "Builder"
+          git config --global color.ui false
 
       - name: Sync OrangeFox
         run: |
@@ -27,28 +36,21 @@ jobs:
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
-          
-          # 2. Hard-code Git Identity (Fixes the authentication error in 1000025322_2.jpg)
-          git config --global user.email "orangefox@build.bot"
-          git config --global user.name "OrangeFox-Builder"
-          git config --global color.ui false
+          export PATH="$HOME/bin:$PATH"
 
           mkdir ~/fox
           cd ~/fox
           
-          # 3. Initialize and Sync using the GitHub Mirror
-          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --depth=1
+          # 2. Use the Mirror + -j1 to bypass the throttle seen in 1000025323.jpg
+          repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1
+          repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
           
-          # 4. Use -j1 to avoid triggering security throttles
-          ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
-          
-          # 5. Clone your device tree
+          # 3. Sync Device Tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
           cd ~/fox
-          # Fixes the 'non-empty directory' crash that occurred at 52m
           rm -rf out/target/product/gta9p/vendor
           echo "Intercepted v59 vendor conflict."
 
