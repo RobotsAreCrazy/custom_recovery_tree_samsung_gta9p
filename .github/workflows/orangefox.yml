@@ -25,10 +25,8 @@ jobs:
           
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
-          
-          # Fix for 1000025345.jpg: Instead of SSH, use the runner's token to authenticate HTTPS
-          # This replaces the need for a password/ssh-key.
-          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          # FORCE DUMB HTTP: This bypasses the protocol handshake failing in 1000025346.jpg
+          git config --global http.version HTTP/1.1
 
       - name: Sync OrangeFox
         run: |
@@ -39,19 +37,14 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # Seed the manifest using the tokenized HTTPS URL
-          mkdir -p .repo/manifests
-          git clone --depth=1 "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 .repo/manifests
+          # FIX FOR 1000025346.jpg: Use the official repo tool bootstrap properly
+          # We provide the URL as a literal string to ensure no terminal parsing errors
+          ~/bin/repo init -u "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 --depth=1 --groups=all,-notdefault,-device,-mips,-x86,-darwin
           
-          cp .repo/manifests/default.xml .repo/manifest.xml
+          # Force sync without using the "smart" git protocol features
+          ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
           
-          # Initialize repo - the 'insteadOf' config will handle the token injection automatically
-          ~/bin/repo init -u "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 --no-clone-bundle
-          
-          # Sync using a single thread for stability
-          ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
-          
-          # Sync Device Tree
+          # Manual Device Tree Clone
           git clone --depth=1 "https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git" -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
