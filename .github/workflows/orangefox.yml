@@ -1,4 +1,4 @@
-name: OrangeFox Build - Final Victory Run
+name: OrangeFox Build - GitLab Mirror Bypass
 
 on:
   workflow_dispatch:
@@ -6,16 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    # These match your settings in 1000025358.jpg
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - name: Checkout Workspace
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.MY_PAT }}
-          persist-credentials: false
 
       - name: Set up Build Environment
         run: |
@@ -24,12 +17,16 @@ jobs:
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
 
-      - name: Sync Sources
+      - name: Sync from GitLab Mirrors
         run: |
           mkdir ~/fox && cd ~/fox
-          # Success depends on the PAT and the Write access from 1000025358.jpg
-          git clone --depth=1 https://x-access-token:${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/build.git build/make
-          git clone --depth=1 https://x-access-token:${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/system_core.git system/core
+          
+          # We use GitLab mirrors because GitHub is blocking your access
+          # These are public and don't require your GitHub PAT
+          git clone --depth=1 https://gitlab.com/OrangeFox/build.git build/make
+          git clone --depth=1 https://gitlab.com/OrangeFox/system_core.git system/core
+          
+          # Clone your device tree from GitHub (this is YOUR repo, so it will work)
           git clone --depth=1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: Build Execution
@@ -41,7 +38,7 @@ jobs:
             lunch twrp_gta9p-eng
             mka recoveryimage -j$(nproc --all)
           else
-            echo "Clone failed. If permissions are correct, double-check the PAT scope in GitHub settings."
+            echo "GitLab mirrors also unreachable. This usually means a local network/runner issue."
             exit 1
           fi
 
@@ -49,5 +46,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-Final-Result
+          name: OrangeFox-GitLab-Build
           path: /home/runner/fox/out/target/product/gta9p/*.img
