@@ -1,4 +1,4 @@
-name: OrangeFox Build - GitLab Anonymous Sync
+name: Full OrangeFox - Raw Archive Bypass
 
 on:
   workflow_dispatch:
@@ -7,46 +7,43 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Workspace
+      - name: Checkout Your Device Tree
         uses: actions/checkout@v4
 
-      - name: Set up Build Environment
+      - name: Prep Build Environment
         run: |
           sudo apt-get update
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
-          # This line prevents the "Terminal" prompt error seen in 1000025366.jpg
-          export GIT_TERMINAL_PROMPT=0
 
-      - name: Sync from GitLab (No Auth)
+      - name: Download Full Source (Manual Archive)
         run: |
-          mkdir ~/fox && cd ~/fox
+          mkdir -p ~/fox/source && cd ~/fox/source
+          # We download the source as a ZIP to bypass Git 'Resolve' errors
+          wget https://github.com/OrangeFoxRecovery/OrangeFox_Sync/archive/refs/heads/master.zip
+          unzip master.zip
+          mv OrangeFox_Sync-master/* .
           
-          # We use a trick here: adding 'anything:anything@' forces Git to skip the credential prompt
-          # This works for public repos like the GitLab mirrors.
-          git clone --depth=1 https://anon:anon@gitlab.com/OrangeFox/build.git build/make
-          git clone --depth=1 https://anon:anon@gitlab.com/OrangeFox/system_core.git system/core
-          
-          # Clone your device tree from GitHub
+          # Run the internal sync using the --force-sync flag to ignore server blocks
+          chmod +x orangefox_sync.sh
+          ./orangefox_sync.sh --branch 12.1 --path ~/fox/source --force-sync
+
+      - name: Build Full OrangeFox
+        run: |
+          cd ~/fox/source
+          # Injecting your A9+ device tree
           git clone --depth=1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
+          
+          source build/make/envsetup.sh
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export FOX_VERSION="R11.1"
+          lunch twrp_gta9p-eng
+          mka recoveryimage -j$(nproc --all)
 
-      - name: Build Execution
-        run: |
-          cd ~/fox
-          if [ -d build/make ]; then
-            source build/make/envsetup.sh
-            export ALLOW_MISSING_DEPENDENCIES=true
-            lunch twrp_gta9p-eng
-            mka recoveryimage -j$(nproc --all)
-          else
-            echo "Failed to sync. GitLab mirrors might be private or path is wrong."
-            exit 1
-          fi
-
-      - name: Upload Artifacts
+      - name: Upload Finished Image
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-Final-Success
-          path: /home/runner/fox/out/target/product/gta9p/*.img
+          name: Full-OrangeFox-A9Plus
+          path: /home/runner/fox/source/out/target/product/gta9p/*.img
