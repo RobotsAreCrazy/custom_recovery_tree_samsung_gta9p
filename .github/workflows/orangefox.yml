@@ -1,4 +1,4 @@
-name: Full OrangeFox - Raw Archive Bypass
+name: OrangeFox Full - Internal Sideload
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Your Device Tree
+      - name: Checkout Your Files
         uses: actions/checkout@v4
 
       - name: Prep Build Environment
@@ -17,23 +17,23 @@ jobs:
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
 
-      - name: Download Full Source (Manual Archive)
+      - name: Execute Local Sync
         run: |
-          mkdir -p ~/fox/source && cd ~/fox/source
-          # We download the source as a ZIP to bypass Git 'Resolve' errors
-          wget https://github.com/OrangeFoxRecovery/OrangeFox_Sync/archive/refs/heads/master.zip
-          unzip master.zip
-          mv OrangeFox_Sync-master/* .
-          
-          # Run the internal sync using the --force-sync flag to ignore server blocks
+          mkdir -p ~/fox/source
+          # Copy the script you uploaded into the build directory
+          cp orangefox_sync.sh ~/fox/source/
+          cd ~/fox/source
           chmod +x orangefox_sync.sh
-          ./orangefox_sync.sh --branch 12.1 --path ~/fox/source --force-sync
+          
+          # This pulls the source from mirrors, not from the blocked GitHub API
+          ./orangefox_sync.sh --branch 12.1 --path ~/fox/source
 
       - name: Build Full OrangeFox
         run: |
           cd ~/fox/source
-          # Injecting your A9+ device tree
-          git clone --depth=1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
+          # Move your device tree into the synced source
+          mkdir -p device/samsung/gta9p
+          cp -r $GITHUB_WORKSPACE/* device/samsung/gta9p/
           
           source build/make/envsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
@@ -41,9 +41,9 @@ jobs:
           lunch twrp_gta9p-eng
           mka recoveryimage -j$(nproc --all)
 
-      - name: Upload Finished Image
+      - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Full-OrangeFox-A9Plus
+          name: OrangeFox-Full-A9Plus
           path: /home/runner/fox/source/out/target/product/gta9p/*.img
