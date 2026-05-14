@@ -23,13 +23,15 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           
-          # Fix for 1000025343.jpg: Use an empty credential helper 
-          # to satisfy Git's internal check without needing a real username.
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
-          git config --global credential.helper 'cache --timeout=3600'
-          # Force Git to use a placeholder username for github.com
-          git config --global url."https://none@github.com/".insteadOf "https://github.com/"
+          
+          # Force Git to use SSH instead of HTTPS to bypass the password prompt in 1000025344.jpg
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          
+          # Add GitHub to known hosts so the build doesn't hang on a "Trust this host?" prompt
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
       - name: Sync OrangeFox
         run: |
@@ -40,20 +42,20 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # Manual seeding using a literal URL to bypass the 'none@' rewrite for the first step
+          # Seed the manifest using SSH
           mkdir -p .repo/manifests
-          git clone --depth=1 "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 .repo/manifests
+          git clone --depth=1 git@github.com:OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
           
           cp .repo/manifests/default.xml .repo/manifest.xml
           
-          # Initialize pointing to the local directory
-          ~/bin/repo init -u "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 --no-clone-bundle
+          # Initialize repo using the SSH URL
+          ~/bin/repo init -u git@github.com:OrangeFoxRecovery/Manifest.git -b fox_12.1 --no-clone-bundle
           
           # Sync using a single thread
           ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
           
-          # Sync Device Tree
-          git clone --depth=1 "https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git" -b twrp-12.1 device/samsung/gta9p
+          # Sync Device Tree using SSH
+          git clone --depth=1 git@github.com:RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
