@@ -26,12 +26,9 @@ jobs:
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
           
-          # Force Git to use SSH instead of HTTPS to bypass the password prompt in 1000025344.jpg
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
-          
-          # Add GitHub to known hosts so the build doesn't hang on a "Trust this host?" prompt
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          # Fix for 1000025345.jpg: Instead of SSH, use the runner's token to authenticate HTTPS
+          # This replaces the need for a password/ssh-key.
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Sync OrangeFox
         run: |
@@ -42,20 +39,20 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # Seed the manifest using SSH
+          # Seed the manifest using the tokenized HTTPS URL
           mkdir -p .repo/manifests
-          git clone --depth=1 git@github.com:OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
+          git clone --depth=1 "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 .repo/manifests
           
           cp .repo/manifests/default.xml .repo/manifest.xml
           
-          # Initialize repo using the SSH URL
-          ~/bin/repo init -u git@github.com:OrangeFoxRecovery/Manifest.git -b fox_12.1 --no-clone-bundle
+          # Initialize repo - the 'insteadOf' config will handle the token injection automatically
+          ~/bin/repo init -u "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 --no-clone-bundle
           
-          # Sync using a single thread
+          # Sync using a single thread for stability
           ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
           
-          # Sync Device Tree using SSH
-          git clone --depth=1 git@github.com:RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
+          # Sync Device Tree
+          git clone --depth=1 "https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git" -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
