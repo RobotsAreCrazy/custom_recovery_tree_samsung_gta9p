@@ -5,10 +5,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-runs-on: ubuntu-22.04
     timeout-minutes: 300
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout Workspace
@@ -25,10 +23,11 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           
+          # Force git identity
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
 
-      - name: Sync OrangeFox (Tokenized Git Bypass)
+      - name: Sync OrangeFox (Static URL Bypass)
         run: |
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
@@ -37,22 +36,22 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # FIX FOR 1000025339.jpg:
-          # Use a direct Git clone with the token embedded in the URL.
-          # This avoids the "Could not resolve" error from the GitHub CLI.
+          # FIX FOR 1000025340.jpg:
+          # Using the verified public HTTPS URL without tokens to check visibility.
+          # We use a literal string to ensure no masking issues.
           mkdir -p .repo/manifests
-          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
+          git clone --depth=1 "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 .repo/manifests
           
           cp .repo/manifests/default.xml .repo/manifest.xml
           
-          # Initialize the repo tool locally
-          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --no-clone-bundle
+          # Initialize locally pointing to the directory we just cloned
+          ~/bin/repo init -u "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 --no-clone-bundle
           
-          # Sync using -j1 to ensure maximum stability and avoid being flagged as a bot
+          # Sync using a single thread for stability
           ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
           
-          # Clone Device Tree using the same tokenized method
-          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
+          # Sync Device Tree
+          git clone --depth=1 "https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git" -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
