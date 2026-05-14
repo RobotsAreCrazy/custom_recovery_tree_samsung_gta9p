@@ -1,4 +1,4 @@
-name: OrangeFox Build - Manual Sync Fix
+name: OrangeFox Build - PAT Sync Final
 
 on:
   workflow_dispatch:
@@ -9,40 +9,40 @@ jobs:
     steps:
       - name: Checkout Workspace
         uses: actions/checkout@v4
-
-      - name: Cleanup & Maximize Space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-          sudo rm -rf /usr/share/swift /usr/local/share/boost
+        with:
+          token: ${{ secrets.MY_PAT }}
 
       - name: Set up Build Environment
         run: |
           sudo apt-get update
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
+          git config --global user.email "builder@orangefox.org"
+          git config --global user.name "OrangeFox-Builder"
 
-      - name: Manual Source Sync
+      - name: Sync Sources using PAT
         run: |
           mkdir ~/fox && cd ~/fox
           
-          # Use the token directly in the URL for the most reliable auth
-          # We are only grabbing the absolute essentials to keep it light
-          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/OrangeFoxRecovery/build.git build/make
-          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/OrangeFoxRecovery/system_core.git system/core
+          # Manually clone the absolute core necessities using your PAT
+          # This bypasses all the "Repository not found" errors from 1000025350.jpg
+          git clone --depth=1 https://${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/build.git build/make
+          git clone --depth=1 https://${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/system_core.git system/core
+          git clone --depth=1 https://${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/vendor_omni.git vendor/omni
           
-          # Manually clone your device tree
+          # Clone your specific device tree
           git clone --depth=1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: Build Execution
         run: |
           cd ~/fox
-          # We have to see if these two components are enough to start the environment
-          if [ -f build/envsetup.sh ]; then
-            source build/envsetup.sh
+          # Check if the core build files actually landed
+          if [ -f build/make/envsetup.sh ]; then
+            source build/make/envsetup.sh
             export ALLOW_MISSING_DEPENDENCIES=true
             lunch twrp_gta9p-eng
             mka recoveryimage -j$(nproc --all)
           else
-            echo "Critical build files missing. Manual sync needs more paths."
+            echo "Build core missing. Ensure your PAT has 'repo' scope."
             exit 1
           fi
 
@@ -50,5 +50,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-Manual-Build
+          name: OrangeFox-PAT-Build
           path: /home/runner/fox/out/target/product/gta9p/*.img
