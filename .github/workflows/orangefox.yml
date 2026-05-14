@@ -1,4 +1,4 @@
-name: OrangeFox - Universal Branch Fix
+name: OrangeFox - Genuine 12.1 Source Build
 
 on:
   workflow_dispatch:
@@ -7,45 +7,44 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Your Project
+      - name: Checkout Your Device Tree
         uses: actions/checkout@v4
+        with:
+          path: device/samsung/gta9p
 
       - name: Prep Build Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
+          sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync lz4
           git config --global user.email "builder@example.com"
           git config --global user.name "Builder"
 
-      - name: Install Repo Tool
+      - [span_6](start_span)name: Sync OrangeFox 12.1 Sources
         run: |
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+rx ~/bin/repo
-          sudo ln -sf ~/bin/repo /usr/bin/repo
+          # Using the official GitLab sync method[span_6](end_span)
+          mkdir -p ~/OrangeFox_sync
+          cd ~/OrangeFox_sync
+          git clone https://gitlab.com/OrangeFox/sync.git
+          cd sync
+          ./orangefox_sync.sh --branch 12.1 --path /home/runner/fox_12.1
 
-      - name: Execute Universal Sync
+      - name: Build Recovery Image
         run: |
-          # Ensuring a completely blank slate
-          rm -rf ~/fox/source
-          bash orangefox_sync.sh
-
-      - name: Build Full OrangeFox
-        run: |
-          cd ~/fox/source
-          # Inject your A9+ device tree
+          cd /home/runner/fox_12.1
+          # Move your checked-out device tree into the build source
           mkdir -p device/samsung/gta9p
-          cp -r $GITHUB_WORKSPACE/* device/samsung/gta9p/
+          cp -r $GITHUB_WORKSPACE/device/samsung/gta9p/* device/samsung/gta9p/
           
-          source build/make/envsetup.sh
+          [span_7](start_span)# Standard OrangeFox build commands[span_7](end_span)
+          source build/envsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
-          export FOX_VERSION="R11.1"
+          export FOX_BUILD_DEVICE=gta9p
+          export LC_ALL="C"
           lunch twrp_gta9p-eng
           mka recoveryimage -j$(nproc --all)
 
-      - name: Upload Finished Image
-        if: always()
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-Final-A9Plus
-          path: /home/runner/fox/source/out/target/product/gta9p/*.img
+          name: OrangeFox-12.1-A9Plus-SourceBuild
+          path: /home/runner/fox_12.1/out/target/product/gta9p/*.img
