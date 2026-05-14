@@ -1,4 +1,4 @@
-name: OrangeFox Build - v59 Final Interception
+name: OrangeFox Build - Manual Sync Fix
 
 on:
   workflow_dispatch:
@@ -6,8 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 300
-
     steps:
       - name: Checkout Workspace
         uses: actions/checkout@v4
@@ -15,74 +13,42 @@ jobs:
       - name: Cleanup & Maximize Space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-          sudo rm -rf /usr/local/share/boost /usr/share/swift
+          sudo rm -rf /usr/share/swift /usr/local/share/boost
 
       - name: Set up Build Environment
         run: |
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get update -y
+          sudo apt-get update
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
-          
-          git config --global user.email "builder@orangefox.org"
-          git config --global user.name "OrangeFox-Builder"
 
-      - name: Sync OrangeFox (Hardcoded Manifest)
+      - name: Manual Source Sync
         run: |
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+x ~/bin/repo
+          mkdir ~/fox && cd ~/fox
           
-          mkdir ~/fox
-          cd ~/fox
-
-          # FIX FOR 1000025348.jpg: 
-          # We create the manifest file MANUALLY on the runner disk.
-          # This skips the download step that failed in the previous log.
-          mkdir -p .repo/manifests
-          cat <<EOF > .repo/manifests/default.xml
-          <?xml version="1.0" encoding="UTF-8"?>
-          <manifest>
-            <remote name="gh" fetch="https://github.com" revision="fox_12.1" />
-            <default revision="fox_12.1" remote="gh" sync-j="4" />
-            <!-- The essential minimal project list -->
-            <project path="build/make" name="OrangeFoxRecovery/build" groups="pdk,build_ok" />
-            <project path="system/core" name="OrangeFoxRecovery/system_core" groups="pdk" />
-          </manifest>
-          EOF
-
-          # Point repo to the file we just created
-          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --depth=1
-          cp .repo/manifests/default.xml .repo/manifest.xml
-
-          # Use the token for the projects themselves
-          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          # Use the token directly in the URL for the most reliable auth
+          # We are only grabbing the absolute essentials to keep it light
+          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/OrangeFoxRecovery/build.git build/make
+          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/OrangeFoxRecovery/system_core.git system/core
           
-          # Attempt a minimal sync
-          ~/bin/repo sync -c -j4 --force-sync --no-clone-bundle --no-tags
-          
-          # Manual Device Tree Clone
+          # Manually clone your device tree
           git clone --depth=1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
-
-      - name: v59 Interception Fix
-        run: |
-          cd ~/fox
-          rm -rf out/target/product/gta9p/vendor
-          echo "Bypassed v59 directory conflict."
 
       - name: Build Execution
         run: |
           cd ~/fox
-          source build/envsetup.sh
-          export ALLOW_MISSING_DEPENDENCIES=true
-          export FOX_VERSION="v59_Final"
-          lunch twrp_gta9p-eng
-          mka recoveryimage -j$(nproc --all)
+          # We have to see if these two components are enough to start the environment
+          if [ -f build/envsetup.sh ]; then
+            source build/envsetup.sh
+            export ALLOW_MISSING_DEPENDENCIES=true
+            lunch twrp_gta9p-eng
+            mka recoveryimage -j$(nproc --all)
+          else
+            echo "Critical build files missing. Manual sync needs more paths."
+            exit 1
+          fi
 
       - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-v59-Final-gta9p
-          path: |
-            /home/runner/fox/out/target/product/gta9p/OrangeFox*.zip
-            /home/runner/fox/out/target/product/gta9p/recovery.img
+          name: OrangeFox-Manual-Build
+          path: /home/runner/fox/out/target/product/gta9p/*.img
