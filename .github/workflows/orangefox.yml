@@ -25,14 +25,14 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           
-          # Force identity to satisfy Git's requirements shown in 1000025326.jpg
+          # Fix for 1000025327.jpg: Prevent Git from ever asking for a username/password
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox Builder"
-          git config --global color.ui false
+          git config --global core.askpass /bin/true
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
 
       - name: Sync OrangeFox
         run: |
-          # 1. Setup local repo tool
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
@@ -40,25 +40,25 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # 2. MANUAL MANIFEST CLONE (Bypassing the crash in 1000025326.jpg)
-          # This creates the .repo directory manually so 'repo init' doesn't have to fetch it via HTTPS
+          # MANUAL MANIFEST SETUP: Bypassing the authentication prompt in 1000025327.jpg
           mkdir -p .repo/manifests
-          git clone https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
+          # Using a direct public URL for the manifest clone
+          git clone --depth=1 https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
           cp .repo/manifests/default.xml .repo/manifest.xml
           
-          # 3. Initialize the existing local manifest
-          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --depth=1
+          # Initialize locally so it doesn't try to connect to GitHub again for the manifest
+          ~/bin/repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --no-clone-bundle
           
-          # 4. Sync with -j1 to avoid triggering the 'Authentication' throttle again
+          # Sync with a single thread to avoid triggering security blocks
           ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
           
-          # 5. Sync Device Tree
+          # Sync Device Tree
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
           cd ~/fox
-          # Prevents the directory conflict that causes a 52-minute failure
+          # Fixes the 52-minute 'non-empty directory' crash
           rm -rf out/target/product/gta9p/vendor
           echo "Intercepted v59 vendor conflict."
 
