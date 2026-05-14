@@ -7,8 +7,8 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 300
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
+    permissions:
+      contents: read # Explicitly gives the runner permission to read repos
 
     steps:
       - name: Checkout Workspace
@@ -25,14 +25,13 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           
-          # Fix for 1000025328.jpg: Force git to use the token provided by GitHub Actions automatically
-          git config --global user.email "builder@orangefox.org"
-          git config --global user.name "OrangeFox Builder"
-          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          # Force identity to satisfy standard Git requirements
+          git config --global user.email "orangefox@build.bot"
+          git config --global user.name "OrangeFox-Builder"
+          git config --global color.ui false
 
       - name: Sync OrangeFox
         run: |
-          # 1. Manually setup the repo tool
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
@@ -40,24 +39,25 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # 2. Manual Manifest Clone (Solving the authentication crash in 1000025328.jpg)
-          mkdir -p .repo/manifests
+          # FIX FOR 1000025329.jpg:
+          # We skip the complex 'repo init' authentication loop entirely
+          mkdir -p .repo
           git clone --depth=1 https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
-          cp .repo/manifests/default.xml .repo/manifest.xml
+          ln -s manifests/default.xml .repo/manifest.xml
           
-          # 3. Initialize and Sync
-          ~/bin/repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --no-clone-bundle
-          ~/bin/repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+          # Tell repo to use the local manifest we just cloned
+          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1
           
-          # 4. Sync Device Tree
+          # Sync with j1 to prevent GitHub from flagging the runner as a bot/spam
+          ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
+          
           git clone https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
           cd ~/fox
-          # Prevents the directory conflict that causes a 52-minute failure
           rm -rf out/target/product/gta9p/vendor
-          echo "Intercepted v59 vendor conflict."
+          echo "Fixed v59 directory conflict."
 
       - name: Build Execution
         run: |
