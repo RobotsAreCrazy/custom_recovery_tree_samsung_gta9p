@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 300
 
     steps:
@@ -23,11 +23,10 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
           
-          # Force git identity
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
 
-      - name: Sync OrangeFox (Static URL Bypass)
+      - name: Sync OrangeFox
         run: |
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
@@ -36,9 +35,7 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # FIX FOR 1000025340.jpg:
-          # Using the verified public HTTPS URL without tokens to check visibility.
-          # We use a literal string to ensure no masking issues.
+          # Fix for previous manifest visibility issues
           mkdir -p .repo/manifests
           git clone --depth=1 "https://github.com/OrangeFoxRecovery/Manifest.git" -b fox_12.1 .repo/manifests
           
