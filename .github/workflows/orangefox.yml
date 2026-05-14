@@ -28,9 +28,7 @@ jobs:
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
 
-      - name: Sync OrangeFox (CLI Bypass)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sync OrangeFox (Tokenized Git Bypass)
         run: |
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
@@ -39,22 +37,22 @@ jobs:
           mkdir ~/fox
           cd ~/fox
 
-          # FIX FOR 1000025335.jpg:
-          # Use the pre-installed GitHub CLI to clone. This NEVER fails for "not found"
-          # because it uses the internal runner identity.
+          # FIX FOR 1000025339.jpg:
+          # Use a direct Git clone with the token embedded in the URL.
+          # This avoids the "Could not resolve" error from the GitHub CLI.
           mkdir -p .repo/manifests
-          gh repo clone OrangeFoxRecovery/Manifest .repo/manifests -- --branch fox_12.1 --depth 1
+          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 .repo/manifests
           
           cp .repo/manifests/default.xml .repo/manifest.xml
           
-          # Tell repo to initialize using the files we just forced onto the drive
-          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1
+          # Initialize the repo tool locally
+          ~/bin/repo init -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_12.1 --no-clone-bundle
           
-          # Sync slowly. If it fails here, we'll know it's a specific sub-repo issue.
+          # Sync using -j1 to ensure maximum stability and avoid being flagged as a bot
           ~/bin/repo sync -c -j1 --force-sync --no-clone-bundle --no-tags
           
-          # Sync your specific device tree
-          gh repo clone RobotsAreCrazy/custom_recovery_tree_samsung_gta9p device/samsung/gta9p -- --branch twrp-12.1
+          # Clone Device Tree using the same tokenized method
+          git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: v59 Interception Fix
         run: |
