@@ -1,9 +1,12 @@
 #!/bin/bash
-mkdir -p ~/fox/source
-cd ~/fox/source
+# 1. Create the working directory
+mkdir -p ~/fox_12.1
+cd ~/fox_12.1
 
-# Switch to the AOSP manifest meant for Android 10+
-repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
+# 2. Get the official OrangeFox sync tool
+git clone https://gitlab.com/OrangeFox/sync.git
+cd sync
 
-# Sync the source
-repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+# 3. [span_4](start_span)Run the official sync for the 12.1 branch
+# This will pull about 40GB-80GB of data, so it takes time[span_4](end_span)
+./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
