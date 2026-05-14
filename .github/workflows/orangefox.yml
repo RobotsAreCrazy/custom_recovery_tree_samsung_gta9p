@@ -1,4 +1,4 @@
-name: OrangeFox - 404 Bypass Success
+name: OrangeFox - Community Mirror Sync
 
 on:
   workflow_dispatch:
@@ -10,6 +10,15 @@ jobs:
       - name: Checkout Your Project
         uses: actions/checkout@v4
 
+      - name: Prep Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
+          # These lines are critical to stop the "Check credentials" error in 1000025371.jpg
+          git config --global user.email "builder@example.com"
+          git config --global user.name "Builder"
+          git config --global color.ui false
+
       - name: Install Repo Tool
         run: |
           mkdir -p ~/bin
@@ -17,22 +26,15 @@ jobs:
           chmod a+rx ~/bin/repo
           sudo ln -sf ~/bin/repo /usr/bin/repo
 
-      - name: Prep Build Environment
+      - name: Execute Community Sync
         run: |
-          sudo apt-get update
-          sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev rsync
-          git config --global user.email "builder@orangefox.org"
-          git config --global user.name "OrangeFox-Builder"
-
-      - name: Execute Emergency Sync
-        run: |
-          # Running the script you just created manually
+          # Runs the updated orangefox_sync.sh with the public mirror
           bash orangefox_sync.sh
 
       - name: Build Full OrangeFox
         run: |
           cd ~/fox/source
-          # Move your Samsung device tree into the build
+          # Inject your A9+ device tree
           mkdir -p device/samsung/gta9p
           cp -r $GITHUB_WORKSPACE/* device/samsung/gta9p/
           
@@ -42,9 +44,9 @@ jobs:
           lunch twrp_gta9p-eng
           mka recoveryimage -j$(nproc --all)
 
-      - name: Upload Artifacts
+      - name: Upload Finished Image
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-Full-A9Plus
+          name: OrangeFox-Community-GTA9P
           path: /home/runner/fox/source/out/target/product/gta9p/*.img
