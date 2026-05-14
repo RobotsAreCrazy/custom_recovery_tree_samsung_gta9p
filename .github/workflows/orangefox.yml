@@ -1,4 +1,4 @@
-name: OrangeFox - Final Branch Fix
+name: OrangeFox - Universal Branch Fix
 
 on:
   workflow_dispatch:
@@ -24,24 +24,22 @@ jobs:
           chmod a+rx ~/bin/repo
           sudo ln -sf ~/bin/repo /usr/bin/repo
 
-      - name: Execute Clean Sync
+      - name: Execute Universal Sync
         run: |
-          # Wipe any corrupted data from 1000025372.jpg
+          # Ensuring a completely blank slate
           rm -rf ~/fox/source
-          mkdir -p ~/fox/source
           bash orangefox_sync.sh
 
       - name: Build Full OrangeFox
         run: |
           cd ~/fox/source
-          # Inject your Samsung A9+ tree
+          # Inject your A9+ device tree
           mkdir -p device/samsung/gta9p
           cp -r $GITHUB_WORKSPACE/* device/samsung/gta9p/
           
           source build/make/envsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_VERSION="R11.1"
-          # Standard Samsung build targets
           lunch twrp_gta9p-eng
           mka recoveryimage -j$(nproc --all)
 
@@ -49,5 +47,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-Final-GTA9P
+          name: OrangeFox-Final-A9Plus
           path: /home/runner/fox/source/out/target/product/gta9p/*.img
