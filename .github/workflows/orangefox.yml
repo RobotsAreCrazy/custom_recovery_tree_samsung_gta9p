@@ -1,4 +1,4 @@
-name: OrangeFox Build - PAT Sync Final
+name: OrangeFox Build - Final Victory Run
 
 on:
   workflow_dispatch:
@@ -6,11 +6,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    # These match your settings in 1000025358.jpg
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout Workspace
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.MY_PAT }}
+          persist-credentials: false
 
       - name: Set up Build Environment
         run: |
@@ -19,30 +24,24 @@ jobs:
           git config --global user.email "builder@orangefox.org"
           git config --global user.name "OrangeFox-Builder"
 
-      - name: Sync Sources using PAT
+      - name: Sync Sources
         run: |
           mkdir ~/fox && cd ~/fox
-          
-          # Manually clone the absolute core necessities using your PAT
-          # This bypasses all the "Repository not found" errors from 1000025350.jpg
-          git clone --depth=1 https://${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/build.git build/make
-          git clone --depth=1 https://${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/system_core.git system/core
-          git clone --depth=1 https://${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/vendor_omni.git vendor/omni
-          
-          # Clone your specific device tree
+          # Success depends on the PAT and the Write access from 1000025358.jpg
+          git clone --depth=1 https://x-access-token:${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/build.git build/make
+          git clone --depth=1 https://x-access-token:${{ secrets.MY_PAT }}@github.com/OrangeFoxRecovery/system_core.git system/core
           git clone --depth=1 https://github.com/RobotsAreCrazy/custom_recovery_tree_samsung_gta9p.git -b twrp-12.1 device/samsung/gta9p
 
       - name: Build Execution
         run: |
           cd ~/fox
-          # Check if the core build files actually landed
-          if [ -f build/make/envsetup.sh ]; then
+          if [ -d build/make ]; then
             source build/make/envsetup.sh
             export ALLOW_MISSING_DEPENDENCIES=true
             lunch twrp_gta9p-eng
             mka recoveryimage -j$(nproc --all)
           else
-            echo "Build core missing. Ensure your PAT has 'repo' scope."
+            echo "Clone failed. If permissions are correct, double-check the PAT scope in GitHub settings."
             exit 1
           fi
 
@@ -50,5 +49,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-PAT-Build
+          name: OrangeFox-Final-Result
           path: /home/runner/fox/out/target/product/gta9p/*.img
